@@ -1,12 +1,21 @@
-pub mod schedule_service;
 mod poll;
 mod reconciliation;
-pub use poll::{recover, TickOutcome};
-use crate::{execution::ExecutionService, models::*, security::require, storage::{Result, StorageRepository}, terminal::TerminalLauncher};
+pub mod schedule_service;
+use crate::{
+    execution::ExecutionService,
+    models::*,
+    security::require,
+    storage::{Result, StorageRepository},
+    terminal::TerminalLauncher,
+};
 use chrono::{DateTime, Utc};
 use poll::PollPlan;
+pub use poll::{recover, TickOutcome};
 use schedule_service::ScheduleService;
-use std::sync::{Arc, Mutex, MutexGuard, atomic::{AtomicBool, AtomicI64, Ordering}};
+use std::sync::{
+    atomic::{AtomicBool, AtomicI64, Ordering},
+    Arc, Mutex, MutexGuard,
+};
 
 type TerminalLaunch = dyn Fn(&TerminalInfo, &str) -> Result<()> + Send + Sync;
 pub struct SchedulerManager {
@@ -25,16 +34,29 @@ impl SchedulerManager {
         repository.save("schedules.json", &state.schedules)?;
         repository.key(true)?;
         Ok(Arc::new(Self {
-            repository, state: Mutex::new(state), stopping: AtomicBool::new(false),
+            repository,
+            state: Mutex::new(state),
+            stopping: AtomicBool::new(false),
             terminal_launcher: Arc::new(TerminalLauncher::launch),
-            probe_interval: AtomicI64::new(i64::MIN), retention_interval: AtomicI64::new(i64::MIN),
+            probe_interval: AtomicI64::new(i64::MIN),
+            retention_interval: AtomicI64::new(i64::MIN),
         }))
     }
-    fn lock(&self) -> Result<MutexGuard<'_, Snapshot>> { self.state.lock().map_err(|_| "상태 잠금 오류".into()) }
-    pub fn snapshot(&self) -> Result<Snapshot> { Ok(self.lock()?.clone()) }
-    pub fn current_settings(&self) -> Result<Settings> { Ok(self.lock()?.settings.clone()) }
-    pub fn notifications_enabled(&self) -> bool { self.lock().is_ok_and(|state| state.settings.notifications) }
-    pub fn is_stopping(&self) -> bool { self.stopping.load(Ordering::SeqCst) }
+    fn lock(&self) -> Result<MutexGuard<'_, Snapshot>> {
+        self.state.lock().map_err(|_| "상태 잠금 오류".into())
+    }
+    pub fn snapshot(&self) -> Result<Snapshot> {
+        Ok(self.lock()?.clone())
+    }
+    pub fn current_settings(&self) -> Result<Settings> {
+        Ok(self.lock()?.settings.clone())
+    }
+    pub fn notifications_enabled(&self) -> bool {
+        self.lock().is_ok_and(|state| state.settings.notifications)
+    }
+    pub fn is_stopping(&self) -> bool {
+        self.stopping.load(Ordering::SeqCst)
+    }
     fn edit_state(&self, edit: impl FnOnce(&mut Snapshot) -> Result<()>) -> Result<()> {
         let mut guard = self.lock()?;
         let mut next = guard.clone();
@@ -48,28 +70,39 @@ impl SchedulerManager {
         self.edit_state(|state| ScheduleService::upsert(state, id, input))
     }
     pub fn action(&self, id: String, action: &str) -> Result<()> {
-        if action == "run" { return self.launch(&id, true); }
+        if action == "run" {
+            return self.launch(&id, true);
+        }
         self.edit_state(|state| ScheduleService::action(state, &id, action))
     }
     pub fn settings(&self, settings: Settings) -> Result<()> {
         crate::storage::settings_service::SettingsService::validate(&settings)?;
         self.edit_state(|state| {
-            let mut settings=settings;
-            settings.custom_cli_paths=state.settings.custom_cli_paths.clone();
-            settings.custom_terminals=state.settings.custom_terminals.clone();
-            state.settings=settings;
+            let mut settings = settings;
+            settings.custom_cli_paths = state.settings.custom_cli_paths.clone();
+            settings.custom_terminals = state.settings.custom_terminals.clone();
+            state.settings = settings;
             Ok(())
         })
     }
     pub fn remember_terminal(&self, terminal: TerminalInfo) -> Result<()> {
         self.edit_state(|state| {
-            state.settings.custom_terminals.retain(|item| item.id != terminal.id);
+            state
+                .settings
+                .custom_terminals
+                .retain(|item| item.id != terminal.id);
             state.settings.custom_terminals.push(terminal);
             crate::storage::settings_service::SettingsService::validate(&state.settings)
         })
     }
     pub fn remember_cli(&self, kind: CliKind, path: String) -> Result<()> {
-        self.edit_state(|state| { state.settings.custom_cli_paths.insert(kind.name().into(), path); Ok(()) })
+        self.edit_state(|state| {
+            state
+                .settings
+                .custom_cli_paths
+                .insert(kind.name().into(), path);
+            Ok(())
+        })
     }
     pub fn launch(&self, id: &str, manual: bool) -> Result<()> {
         let (schedule, execution_id) = self.claim(id, manual)?;
@@ -102,7 +135,9 @@ impl SchedulerManager {
         let mut guard = self.lock()?;
         let mut next = guard.clone();
         let execution = find_execution(&mut next, execution_id)?;
-        if !execution.active() { return Ok(()); }
+        if !execution.active() {
+            return Ok(());
+        }
         set_launch_result(execution, result);
         let status = execution.schedule_status();
         ScheduleService::find(&mut next, id)?.status = status;
@@ -124,7 +159,9 @@ impl SchedulerManager {
             *guard = next;
         }
         drop(guard);
-        plan.expired.iter().for_each(|id| self.repository.remove_run(id));
+        plan.expired
+            .iter()
+            .for_each(|id| self.repository.remove_run(id));
         Ok(outcome)
     }
     pub fn stop(&self) -> Result<()> {
@@ -142,17 +179,32 @@ impl SchedulerManager {
         self.repository.save("settings.json", &state.settings)
     }
 }
-fn interval_changed(interval: &AtomicI64, next: i64) -> bool { interval.swap(next, Ordering::Relaxed) != next }
-fn find_execution<'a>(state: &'a mut Snapshot, id: &str) -> Result<&'a mut ExecutionRecord> {
-    state.executions.iter_mut().find(|execution| execution.id == id).ok_or_else(|| "실행 기록을 찾을 수 없습니다.".into())
+fn interval_changed(interval: &AtomicI64, next: i64) -> bool {
+    interval.swap(next, Ordering::Relaxed) != next
 }
-fn record_save_failure(state: &mut Snapshot, id: &str, execution_id: &str, error: &str) -> Result<()> {
+fn find_execution<'a>(state: &'a mut Snapshot, id: &str) -> Result<&'a mut ExecutionRecord> {
+    state
+        .executions
+        .iter_mut()
+        .find(|execution| execution.id == id)
+        .ok_or_else(|| "실행 기록을 찾을 수 없습니다.".into())
+}
+fn record_save_failure(
+    state: &mut Snapshot,
+    id: &str,
+    execution_id: &str,
+    error: &str,
+) -> Result<()> {
     ScheduleService::find(state, id)?.status = ScheduleStatus::Failed;
     let execution = find_execution(state, execution_id)?;
     execution.status = ExecutionStatus::Failed;
     execution.ended_at = Some(Utc::now());
-    execution.error = Some(format!("실행 전 저장 실패로 작업을 시작하지 않았습니다: {error}"));
-    state.warnings.push("저장 실패로 일부 상태는 메모리에만 있습니다. 디스크 공간과 파일 권한을 확인하세요.".into());
+    execution.error = Some(format!(
+        "실행 전 저장 실패로 작업을 시작하지 않았습니다: {error}"
+    ));
+    state.warnings.push(
+        "저장 실패로 일부 상태는 메모리에만 있습니다. 디스크 공간과 파일 권한을 확인하세요.".into(),
+    );
     Ok(())
 }
 fn set_launch_result(execution: &mut ExecutionRecord, result: &Result<()>) {
@@ -166,7 +218,9 @@ fn set_launch_result(execution: &mut ExecutionRecord, result: &Result<()>) {
     }
 }
 fn remove_failed_ticket(repository: &StorageRepository, id: &str, result: &Result<()>) {
-    if result.is_err() { repository.remove_run_file(id, "ticket"); }
+    if result.is_err() {
+        repository.remove_run_file(id, "ticket");
+    }
 }
 #[cfg(test)]
 pub(crate) mod tests;

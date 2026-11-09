@@ -16,14 +16,21 @@ export function CliCatalog({
       <button disabled={busy} onClick={onDetect}>
         CLI / 터미널 재탐색
       </button>
-      {clis.map((c) => (
-        <div className="detect" key={c.kind}>
-          <strong>{c.kind}</strong>
-          <span>{c.version ?? c.validation_error}</span>
-          <code>{c.executable_path}</code>
-          <button onClick={() => onManual(c.kind)}>실행 파일 지정</button>
-        </div>
-      ))}
+      {(["codex", "claude", "gemini"] as const).map((kind) => {
+        const cli = clis.find((candidate) => candidate.kind === kind);
+        return (
+          <div className="detect" key={kind}>
+            <strong>{kind}</strong>
+            <span>
+              {cli?.version ?? cli?.validation_error ?? "탐지되지 않음"}
+            </span>
+            <code>{cli?.executable_path}</code>
+            <button disabled={busy} onClick={() => onManual(kind)}>
+              실행 파일 지정
+            </button>
+          </div>
+        );
+      })}
     </>
   );
 }

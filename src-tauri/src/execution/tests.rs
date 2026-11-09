@@ -9,11 +9,18 @@ fn fixture(code: i32) -> (tempfile::TempDir, StorageRepository, ScheduleInput) {
     (directory, repository, input)
 }
 fn cli_shim() -> &'static str {
-    if cfg!(windows) { "@echo off\r\nnode \"%~dp0fixture.cjs\" %*\r\n" }
-    else { "#!/bin/sh\nexec node \"$(dirname \"$0\")/fixture.cjs\" \"$@\"\n" }
+    if cfg!(windows) {
+        "@echo off\r\nnode \"%~dp0fixture.cjs\" %*\r\n"
+    } else {
+        "#!/bin/sh\nexec node \"$(dirname \"$0\")/fixture.cjs\" \"$@\"\n"
+    }
 }
 fn prepare(repository: &StorageRepository, input: ScheduleInput) -> String {
-    let schedule = Schedule { id: uuid::Uuid::new_v4().to_string(), input, status: ScheduleStatus::Pending };
+    let schedule = Schedule {
+        id: uuid::Uuid::new_v4().to_string(),
+        input,
+        status: ScheduleStatus::Pending,
+    };
     let id = uuid::Uuid::new_v4().to_string();
     ExecutionService::prepare(repository, &schedule, &id).unwrap();
     id
@@ -22,7 +29,10 @@ fn prepare(repository: &StorageRepository, input: ScheduleInput) -> String {
 fn noninteractive_stdin_preserves_unicode_quotes_newlines() {
     let (directory, _repository, input) = fixture(0);
     assert_eq!(execute(&input).unwrap(), Some(0));
-    assert_eq!(std::fs::read_to_string(directory.path().join("received.txt")).unwrap(), input.prompt);
+    assert_eq!(
+        std::fs::read_to_string(directory.path().join("received.txt")).unwrap(),
+        input.prompt
+    );
     assert!(!directory.path().join("bad").exists());
 }
 #[test]
@@ -47,7 +57,8 @@ fn tampered_ticket_never_runs() {
     for field in ["signature", "payload"] {
         let id = prepare(&repository, input.clone());
         let path = repository.run_path(&id, "ticket").unwrap();
-        let mut data: serde_json::Value = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        let mut data: serde_json::Value =
+            serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         data[field] = "00".into();
         atomic(&path, &data).unwrap();
         assert!(run_job_at(&repository, &id).is_err());

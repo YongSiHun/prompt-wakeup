@@ -1,22 +1,26 @@
 import type { TerminalInfo } from "../../types";
 export function TerminalCatalog({
   terminals,
+  busy,
   onManual,
 }: {
   terminals: TerminalInfo[];
+  busy: boolean;
   onManual: () => void;
 }) {
   return (
     <>
       <h3>터미널 탐지</h3>
-      <button onClick={onManual}>터미널 수동 선택</button>
-      {terminals.map((t) => (
-        <div className="detect" key={t.id}>
+      <button disabled={busy} onClick={onManual}>
+        터미널 수동 선택
+      </button>
+      {terminals.map((terminal) => (
+        <div className="detect" key={terminal.id}>
           <strong>
-            {t.name} · {t.supported ? "실행 지원" : "사용 불가"}
+            {terminal.name} · {terminal.supported ? "실행 지원" : "사용 불가"}
           </strong>
-          <code>{t.executable_path}</code>
-          <span>{t.validation_error}</span>
+          <code>{terminal.executable_path}</code>
+          <span>{terminal.validation_error}</span>
         </div>
       ))}
     </>

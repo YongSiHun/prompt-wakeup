@@ -4,32 +4,21 @@ import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "../../stores/app_store";
-import type { Settings, CliKind, CliInfo, TerminalInfo } from "../../types";
+import type { Settings, CliKind } from "../../types";
+import { defaultTerminalId } from "../../lib/executables";
+import { useExecutablePicker } from "../../hooks/use_executable_picker";
 export function SettingsPanel() {
   const store = useAppStore.getState();
   const clis = useAppStore((state) => state.clis);
   const terminals = useAppStore((state) => state.terminals);
-  const busy = useAppStore((state) => state.busy);
+  const { picking, chooseTerminal, chooseCli } = useExecutablePicker();
+  const busy = useAppStore((state) => state.busy) || picking;
   const [permission, setPermission] = useState("확인하지 않음");
   const [settings, setSettings] = useState<Settings>({
     ...store.data!.settings,
   });
-  const update = <K extends keyof Settings>(k: K, v: Settings[K]) =>
-    setSettings((s) => ({ ...s, [k]: v }));
-  async function manual(kind: "terminal" | CliKind) {
-    try {
-      const path = await open({ multiple: false, directory: false });
-      if (typeof path !== "string") return;
-      if (kind === "terminal")
-        store.addTerminal(
-          await invoke<TerminalInfo>("manual_terminal", { path }),
-        );
-      else store.addCli(await invoke<CliInfo>("manual_cli", { kind, path }));
-      await store.refresh();
-    } catch (e) {
-      store.setError(String(e));
-    }
-  }
+  const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
+    setSettings((current) => ({ ...current, [key]: value }));
   return (
     <section className="settings">
       <h2>설정</h2>
@@ -38,24 +27,30 @@ export function SettingsPanel() {
           기본 AI CLI
           <select
             value={settings.default_cli}
-            onChange={(e) => update("default_cli", e.target.value as CliKind)}
+            onChange={(event) =>
+              update("default_cli", event.target.value as CliKind)
+            }
           >
-            {["codex", "claude", "gemini"].map((x) => (
-              <option key={x}>{x}</option>
+            {["codex", "claude", "gemini"].map((kind) => (
+              <option key={kind}>{kind}</option>
             ))}
           </select>
         </label>
         <label>
           기본 터미널
           <select
-            value={settings.default_terminal}
-            onChange={(e) => update("default_terminal", e.target.value)}
+            value={defaultTerminalId(terminals, settings.default_terminal)}
+            onChange={(event) => update("default_terminal", event.target.value)}
           >
+            <option value="">터미널 선택</option>
             {terminals
-              .filter((t) => t.supported)
-              .map((t) => (
-                <option key={t.id} value={t.kind}>
-                  {t.name}
+              .filter((terminal) => terminal.supported)
+              .map((terminal) => (
+                <option key={terminal.id} value={terminal.id}>
+                  {terminal.name}
+                  {terminal.detected_automatically
+                    ? ""
+                    : " · " + terminal.executable_path}
                 </option>
               ))}
           </select>
@@ -66,12 +61,18 @@ export function SettingsPanel() {
         <div className="row">
           <input
             value={settings.default_directory}
-            onChange={(e) => update("default_directory", e.target.value)}
+            onChange={(event) =>
+              update("default_directory", event.target.value)
+            }
           />
           <button
             onClick={async () => {
-              const p = await open({ directory: true });
-              if (typeof p === "string") update("default_directory", p);
+              try {
+                const path = await open({ directory: true, multiple: false });
+                if (typeof path === "string") update("default_directory", path);
+              } catch (error) {
+                store.setError(String(error));
+              }
             }}
           >
             폴더 선택
@@ -83,8 +84,8 @@ export function SettingsPanel() {
           테마
           <select
             value={settings.theme}
-            onChange={(e) =>
-              update("theme", e.target.value as Settings["theme"])
+            onChange={(event) =>
+              update("theme", event.target.value as Settings["theme"])
             }
           >
             <option value="system">시스템</option>
@@ -99,7 +100,9 @@ export function SettingsPanel() {
             min="1"
             max="3650"
             value={settings.retention_days}
-            onChange={(e) => update("retention_days", Number(e.target.value))}
+            onChange={(event) =>
+              update("retention_days", Number(event.target.value))
+            }
           />
         </label>
       </div>
@@ -107,7 +110,7 @@ export function SettingsPanel() {
         <input
           type="checkbox"
           checked={settings.keep_open}
-          onChange={(e) => update("keep_open", e.target.checked)}
+          onChange={(event) => update("keep_open", event.target.checked)}
         />
         기본 터미널 창 유지
       </label>
@@ -115,7 +118,7 @@ export function SettingsPanel() {
         <input
           type="checkbox"
           checked={settings.notifications}
-          onChange={(e) => update("notifications", e.target.checked)}
+          onChange={(event) => update("notifications", event.target.checked)}
         />
         시스템 알림 사용
       </label>
@@ -130,11 +133,17 @@ export function SettingsPanel() {
         clis={clis}
         busy={busy}
         onDetect={() => void store.detect()}
-        onManual={(kind) => void manual(kind)}
+        onManual={async (kind) => {
+          if (await chooseCli(kind)) update("default_cli", kind);
+        }}
       />
       <TerminalCatalog
         terminals={terminals}
-        onManual={() => void manual("terminal")}
+        busy={busy}
+        onManual={async () => {
+          const terminal = await chooseTerminal();
+          if (terminal) update("default_terminal", terminal.id);
+        }}
       />
       <h3>권한 안내</h3>
       <p className="hint">알림 권한: {permission}</p>

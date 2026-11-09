@@ -11,7 +11,10 @@
     "test": "vitest run",
     "tauri": "tauri",
     "lint": "eslint . --max-warnings 0",
-    "test:windows": "node --test tests/windows_shim.test.cjs"
+    "test:windows": "node --test tests/windows_shim.test.cjs",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
@@ -36,7 +39,8 @@
     "@types/node": "^22.0.0",
     "eslint": "9.39.5",
     "@typescript-eslint/parser": "^8.0.0",
-    "eslint-plugin-sonarjs": "3.0.7"
+    "eslint-plugin-sonarjs": "3.0.7",
+    "prettier": "3.7.4"
   },
   "resolutions": {
     "typescript": "5.9.3"

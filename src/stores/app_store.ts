@@ -42,13 +42,37 @@ async function refresh() {
 function reportError(error: unknown) {
   useAppStore.setState({ error: String(error) });
 }
+// Keep manual selections made while a slower automatic scan was in flight.
+function mergeDetected<T>(
+  detected: T[],
+  previous: T[],
+  current: T[],
+  key: (item: T) => string,
+): T[] {
+  const before = new Map(previous.map((item) => [key(item), item]));
+  const selected = current.filter((item) => before.get(key(item)) !== item);
+  return [
+    ...new Map(
+      [...detected, ...selected].map((item) => [key(item), item]),
+    ).values(),
+  ];
+}
 async function discover() {
+  const previous = useAppStore.getState();
   try {
     const [clis, terminals] = await Promise.all([
       invoke<CliInfo[]>("detect_clis"),
       invoke<TerminalInfo[]>("detect_terminals"),
     ]);
-    useAppStore.setState({ clis, terminals });
+    useAppStore.setState((current) => ({
+      clis: mergeDetected(clis, previous.clis, current.clis, (cli) => cli.kind),
+      terminals: mergeDetected(
+        terminals,
+        previous.terminals,
+        current.terminals,
+        (terminal) => terminal.id,
+      ),
+    }));
   } catch (error) {
     reportError(error);
   }

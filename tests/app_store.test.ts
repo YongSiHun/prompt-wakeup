@@ -86,3 +86,21 @@ describe("UI 비동기 상태", () => {
     expect(useAppStore.getState().error).toContain("탐지 실패");
   });
 });
+
+it("늦게 도착한 탐지가 수동 선택 경로를 덮어쓰지 않는다", async () => {
+  const pending = deferred<unknown[]>();
+  invoke.mockImplementation(() => pending.promise);
+  const { useAppStore } = await import("../src/stores/app_store");
+  const detection = useAppStore.getState().detect();
+  const cli = {
+    kind: "codex" as const,
+    executable_path: "C:/custom/codex.exe",
+    available: true,
+    version: "1",
+    validation_error: null,
+  };
+  useAppStore.getState().addCli(cli);
+  pending.resolve([]);
+  await detection;
+  expect(useAppStore.getState().clis).toEqual([cli]);
+});

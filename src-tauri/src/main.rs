@@ -4,7 +4,10 @@ fn main() {
     match arguments.as_slice() {
         [] => prompt_wakeup::run(),
         [flag, id] if flag == "--run-job" => run_job(id),
-        _ => { eprintln!("지원하지 않는 실행 인자"); std::process::exit(2); }
+        _ => {
+            eprintln!("지원하지 않는 실행 인자");
+            std::process::exit(2);
+        }
     }
 }
 fn run_job(id: &str) {
@@ -17,7 +20,11 @@ fn run_job(id: &str) {
 #[cfg(windows)]
 fn attach_console() {
     // The visible terminal is the parent; this never allocates an internal terminal.
-    unsafe { windows_sys::Win32::System::Console::AttachConsole(windows_sys::Win32::System::Console::ATTACH_PARENT_PROCESS); }
+    unsafe {
+        windows_sys::Win32::System::Console::AttachConsole(
+            windows_sys::Win32::System::Console::ATTACH_PARENT_PROCESS,
+        );
+    }
 }
 #[cfg(not(windows))]
 fn attach_console() {}

@@ -19,7 +19,9 @@ fn cmd_line(runner: &Path, id: &str) -> Result<String> {
 impl TerminalAdapter for CmdAdapter {
     fn launch(&self, terminal: &TerminalInfo, runner: &Path, id: &str) -> Result<()> {
         let mut command = Command::new(terminal.executable_path.replace('/', "\\"));
-        command.args(["/d", "/s", "/c"]).raw_arg(cmd_line(runner, id)?);
+        command
+            .args(["/d", "/s", "/c"])
+            .raw_arg(cmd_line(runner, id)?);
         spawn(command)
     }
 }
@@ -27,8 +29,11 @@ impl TerminalAdapter for PowerShellAdapter {
     fn launch(&self, terminal: &TerminalInfo, runner: &Path, id: &str) -> Result<()> {
         let mut command = Command::new(&terminal.executable_path);
         let path = ps_quote(&runner.to_string_lossy());
-        command.args(["-NoLogo", "-NoProfile", "-Command"])
-            .arg(format!("Start-Process -FilePath {path} -ArgumentList '--run-job','{id}' -NoNewWindow -Wait"));
+        command
+            .args(["-NoLogo", "-NoProfile", "-Command"])
+            .arg(format!(
+            "Start-Process -FilePath {path} -ArgumentList '--run-job','{id}' -NoNewWindow -Wait"
+        ));
         spawn(command)
     }
 }
@@ -36,8 +41,11 @@ impl TerminalAdapter for WindowsTerminalAdapter {
     fn launch(&self, terminal: &TerminalInfo, runner: &Path, id: &str) -> Result<()> {
         let system = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
         let mut command = Command::new(&terminal.executable_path);
-        command.args(["-w", "new", "new-tab"]).arg(Path::new(&system).join("System32").join("cmd.exe"))
-            .args(["/d", "/s", "/c"]).raw_arg(cmd_line(runner, id)?);
+        command
+            .args(["-w", "new", "new-tab"])
+            .arg(Path::new(&system).join("System32").join("cmd.exe"))
+            .args(["/d", "/s", "/c"])
+            .raw_arg(cmd_line(runner, id)?);
         spawn(command)
     }
 }
@@ -45,7 +53,9 @@ impl TerminalAdapter for GitBashAdapter {
     fn launch(&self, terminal: &TerminalInfo, runner: &Path, id: &str) -> Result<()> {
         let path = runner.to_string_lossy().replace('\\', "/");
         let mut command = Command::new(&terminal.executable_path);
-        command.args(["--no-cd", "-c"]).arg(format!("{} --run-job {id}", sh_quote(&path)));
+        command
+            .args(["--no-cd", "-c"])
+            .arg(format!("{} --run-job {id}", sh_quote(&path)));
         spawn(command)
     }
 }

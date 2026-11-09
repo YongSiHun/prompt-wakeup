@@ -4,22 +4,47 @@ use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum ScheduleStatus { Pending, Launching, Launched, Completed, Failed, Canceled, Missed }
+pub enum ScheduleStatus {
+    Pending,
+    Launching,
+    Launched,
+    Completed,
+    Failed,
+    Canceled,
+    Missed,
+}
 impl ScheduleStatus {
-    pub fn is_running(self) -> bool { matches!(self, Self::Launching | Self::Launched) }
+    pub fn is_running(self) -> bool {
+        matches!(self, Self::Launching | Self::Launched)
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum ExecutionStatus { Launching, Launched, Completed, Failed, Unknown, TrackingUnavailable }
+pub enum ExecutionStatus {
+    Launching,
+    Launched,
+    Completed,
+    Failed,
+    Unknown,
+    TrackingUnavailable,
+}
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-pub enum CliKind { Codex, Claude, Gemini }
+pub enum CliKind {
+    Codex,
+    Claude,
+    Gemini,
+}
 impl CliKind {
     pub const ALL: [Self; 3] = [Self::Codex, Self::Claude, Self::Gemini];
     pub fn name(self) -> &'static str {
-        match self { Self::Codex => "codex", Self::Claude => "claude", Self::Gemini => "gemini" }
+        match self {
+            Self::Codex => "codex",
+            Self::Claude => "claude",
+            Self::Gemini => "gemini",
+        }
     }
 }
 
@@ -77,13 +102,23 @@ pub struct ExecutionRecord {
 impl ExecutionRecord {
     pub fn new(schedule: &Schedule) -> Self {
         Self {
-            id: uuid::Uuid::new_v4().to_string(), schedule_id: schedule.id.clone(),
-            name: schedule.input.name.clone(), cli: schedule.input.cli, started_at: Utc::now(),
-            ended_at: None, status: ExecutionStatus::Launching, exit_code: None, error: None,
+            id: uuid::Uuid::new_v4().to_string(),
+            schedule_id: schedule.id.clone(),
+            name: schedule.input.name.clone(),
+            cli: schedule.input.cli,
+            started_at: Utc::now(),
+            ended_at: None,
+            status: ExecutionStatus::Launching,
+            exit_code: None,
+            error: None,
         }
     }
     pub fn active(&self) -> bool {
-        self.ended_at.is_none() && matches!(self.status, ExecutionStatus::Launching | ExecutionStatus::Launched | ExecutionStatus::Unknown)
+        self.ended_at.is_none()
+            && matches!(
+                self.status,
+                ExecutionStatus::Launching | ExecutionStatus::Launched | ExecutionStatus::Unknown
+            )
     }
     pub fn schedule_status(&self) -> ScheduleStatus {
         match self.status {
@@ -116,11 +151,18 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            custom_cli_paths: BTreeMap::new(), custom_terminals: Vec::new(),
+            custom_cli_paths: BTreeMap::new(),
+            custom_terminals: Vec::new(),
             default_cli: CliKind::Codex,
             default_terminal: if cfg!(windows) { "cmd" } else { "terminal" }.into(),
-            default_directory: dirs::home_dir().unwrap_or_default().to_string_lossy().into(),
-            theme: "system".into(), keep_open: true, notifications: true, retention_days: 90,
+            default_directory: dirs::home_dir()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .into(),
+            theme: "system".into(),
+            keep_open: true,
+            notifications: true,
+            retention_days: 90,
         }
     }
 }

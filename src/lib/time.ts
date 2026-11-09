@@ -4,12 +4,12 @@ function localDate(date: Date): Date {
 export const localInput = (date: Date) =>
   localDate(date).toISOString().slice(0, 19);
 export function utcFromLocal(value: string): string {
-  const d = new Date(value);
-  if (!Number.isFinite(d.getTime()) || localInput(d) !== value)
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime()) || localInput(date) !== value)
     throw new Error("존재하지 않는 로컬 시각입니다.");
-  if (d.getTime() <= Date.now())
+  if (date.getTime() <= Date.now())
     throw new Error("미래 실행 시각을 선택하세요.");
-  return d.toISOString();
+  return date.toISOString();
 }
 const dateTimeFormat = new Intl.DateTimeFormat("ko-KR", {
   timeZone: "UTC",
@@ -24,11 +24,15 @@ const dateTimeFormat = new Intl.DateTimeFormat("ko-KR", {
 export const formatTime = (value: string) =>
   dateTimeFormat.format(localDate(new Date(value)));
 export function remaining(value: string, now: number): string {
-  const s = Math.ceil((new Date(value).getTime() - now) / 1000);
-  if (s <= 0) return "실행 시각 도달";
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return [h ? h + "시간" : "", m ? m + "분" : "", (s % 60) + "초"]
+  const seconds = Math.ceil((new Date(value).getTime() - now) / 1000);
+  if (seconds <= 0) return "실행 시각 도달";
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return [
+    hours ? hours + "시간" : "",
+    minutes ? minutes + "분" : "",
+    (seconds % 60) + "초",
+  ]
     .filter(Boolean)
     .join(" ");
 }

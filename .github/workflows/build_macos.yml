@@ -30,9 +30,11 @@ jobs:
       - run: npm install --global yarn@1.22.22
       - uses: dtolnay/rust-toolchain@stable
         with:
-          components: clippy
+          components: clippy, rustfmt
           targets: ${{ matrix.target }}
       - run: yarn install --non-interactive
+      - run: yarn format:check
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
       - run: yarn lint
       - run: yarn typecheck
       - run: yarn test

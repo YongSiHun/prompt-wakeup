@@ -2,7 +2,7 @@ import { StatusBadge } from "../../components/status_badge";
 import { useAppStore } from "../../stores/app_store";
 import { formatTime } from "../../lib/time";
 export function ExecutionList() {
-  const records = useAppStore((s) => s.data!.executions);
+  const records = useAppStore((state) => state.data!.executions);
   return (
     <>
       <h2>실행 이력</h2>
@@ -18,31 +18,33 @@ export function ExecutionList() {
             <thead>
               <tr>
                 {["작업 / CLI", "시작 / 종료", "결과", "종료 코드 / 원인"].map(
-                  (x) => (
-                    <th key={x}>{x}</th>
+                  (heading) => (
+                    <th key={heading}>{heading}</th>
                   ),
                 )}
               </tr>
             </thead>
             <tbody>
-              {[...records].reverse().map((e) => (
-                <tr key={e.id}>
+              {[...records].reverse().map((record) => (
+                <tr key={record.id}>
                   <td>
-                    {e.name}
-                    <small>{e.cli}</small>
+                    {record.name}
+                    <small>{record.cli}</small>
                   </td>
                   <td>
-                    {formatTime(e.started_at)}
+                    {formatTime(record.started_at)}
                     <small>
-                      {e.ended_at ? formatTime(e.ended_at) : "종료 미확인"}
+                      {record.ended_at
+                        ? formatTime(record.ended_at)
+                        : "종료 미확인"}
                     </small>
                   </td>
                   <td>
-                    <StatusBadge status={e.status} />
+                    <StatusBadge status={record.status} />
                   </td>
                   <td>
-                    {e.exit_code ?? "—"}
-                    <small>{e.error}</small>
+                    {record.exit_code ?? "—"}
+                    <small>{record.error}</small>
                   </td>
                 </tr>
               ))}

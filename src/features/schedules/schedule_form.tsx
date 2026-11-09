@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
+import { useExecutablePicker } from "../../hooks/use_executable_picker";
 import { useAppStore } from "../../stores/app_store";
 import type {
   Schedule,
@@ -9,10 +10,12 @@ import type {
   CliInfo,
   ScheduleInput,
 } from "../../types";
+import { defaultTerminalId } from "../../lib/executables";
 import { localInput, utcFromLocal } from "../../lib/time";
 interface Draft {
   name: string;
   cli: CliKind;
+  cliPath: string;
   terminal: string;
   directory: string;
   prompt: string;
@@ -31,6 +34,7 @@ function existingDraft(schedule: Schedule): Draft {
   return {
     name: schedule.name,
     cli: schedule.cli,
+    cliPath: schedule.cli_path,
     terminal: schedule.terminal.id,
     directory: schedule.working_directory,
     prompt: schedule.prompt,
@@ -42,11 +46,8 @@ function defaultDraft(settings: Settings, terminals: TerminalInfo[]): Draft {
   return {
     name: "",
     cli: settings.default_cli,
-    terminal:
-      terminals.find(
-        (terminal) =>
-          terminal.kind === settings.default_terminal && terminal.supported,
-      )?.id ?? "",
+    cliPath: "",
+    terminal: defaultTerminalId(terminals, settings.default_terminal),
     directory: settings.default_directory,
     prompt: "",
     time: localInput(new Date(Date.now() + 3600_000)),
@@ -62,20 +63,24 @@ function formTerminals(
     return terminals;
   return [...terminals, schedule.terminal];
 }
+function selectedCliPath(draft: Draft, clis: CliInfo[]): string {
+  if (draft.cliPath) return draft.cliPath;
+  const cli = clis.find((cli) => cli.kind === draft.cli);
+  if (!cli?.available)
+    throw new Error("CLI를 설치하거나 실행 파일을 선택하세요.");
+  return cli.executable_path;
+}
 function buildInput(
   draft: Draft,
   terminals: TerminalInfo[],
   clis: CliInfo[],
 ): ScheduleInput {
   const terminal = terminals.find((terminal) => terminal.id === draft.terminal);
-  const cli = clis.find((cli) => cli.kind === draft.cli);
   if (!terminal?.supported) throw new Error("지원되는 터미널을 선택하세요.");
-  if (!cli?.available)
-    throw new Error("CLI를 설치하거나 설정에서 경로를 지정하세요.");
   return {
     name: draft.name,
     cli: draft.cli,
-    cli_path: cli.executable_path,
+    cli_path: selectedCliPath(draft, clis),
     terminal,
     working_directory: draft.directory,
     prompt: draft.prompt,
@@ -84,6 +89,18 @@ function buildInput(
     local_time: draft.time,
     keep_open: draft.keepOpen,
   };
+}
+function cliPath(clis: CliInfo[], kind: CliKind) {
+  return (
+    clis.find((cli) => cli.kind === kind)?.executable_path ||
+    "AI CLI 실행 파일을 선택하세요."
+  );
+}
+function terminalPath(terminals: TerminalInfo[], id: string) {
+  return (
+    terminals.find((terminal) => terminal.id === id)?.executable_path ||
+    "터미널 실행 파일을 선택하세요."
+  );
 }
 function normalizeTime(value: string) {
   return value.length === 16 ? value + ":00" : value;
@@ -106,18 +123,25 @@ export function ScheduleForm({
   const settings = useAppStore((state) => state.data!.settings);
   const clis = useAppStore((state) => state.clis);
   const terminals = useAppStore((state) => state.terminals);
-  const busy = useAppStore((state) => state.busy);
+  const { picking, chooseTerminal, chooseCli } = useExecutablePicker();
+  const busy = useAppStore((state) => state.busy) || picking;
   const [draft, setDraft] = useState(() =>
     initialDraft(schedule, settings, terminals),
   );
   const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [key]: value }));
   const available = formTerminals(schedule, terminals);
+  const selectedTerminal =
+    draft.terminal || defaultTerminalId(available, settings.default_terminal);
   async function submit(event: FormEvent) {
     event.preventDefault();
     const store = useAppStore.getState();
     try {
-      const input = buildInput(draft, available, clis);
+      const input = buildInput(
+        { ...draft, terminal: selectedTerminal },
+        available,
+        clis,
+      );
       const saved = await store.perform("save_schedule", {
         id: schedule?.id ?? null,
         input,
@@ -156,9 +180,14 @@ export function ScheduleForm({
             <label>
               AI CLI
               <select
+                disabled={busy}
                 value={draft.cli}
                 onChange={(event) =>
-                  update("cli", event.target.value as CliKind)
+                  setDraft((current) => ({
+                    ...current,
+                    cli: event.target.value as CliKind,
+                    cliPath: "",
+                  }))
                 }
               >
                 {(["codex", "claude", "gemini"] as const).map((kind) => (
@@ -175,7 +204,8 @@ export function ScheduleForm({
               외부 터미널
               <select
                 required
-                value={draft.terminal}
+                disabled={busy}
+                value={selectedTerminal}
                 onChange={(event) => update("terminal", event.target.value)}
               >
                 <option value="">터미널 선택</option>
@@ -186,11 +216,46 @@ export function ScheduleForm({
                     disabled={!terminal.supported}
                   >
                     {terminal.name}
+                    {terminal.detected_automatically
+                      ? ""
+                      : " · " + terminal.executable_path}
                     {terminal.supported ? "" : " (지원 불가)"}
                   </option>
                 ))}
               </select>
             </label>
+          </div>
+          <div className="grid">
+            <div className="executable-path">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  const cli = await chooseCli(draft.cli);
+                  if (cli) update("cliPath", cli.executable_path);
+                }}
+              >
+                AI CLI 실행 파일 선택
+              </button>
+              <p className="hint executable-path">
+                {draft.cliPath || cliPath(clis, draft.cli)}
+              </p>
+            </div>
+            <div className="executable-path">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={async () => {
+                  const terminal = await chooseTerminal();
+                  if (terminal) update("terminal", terminal.id);
+                }}
+              >
+                터미널 실행 파일 선택
+              </button>
+              <p className="hint executable-path">
+                {terminalPath(available, selectedTerminal)}
+              </p>
+            </div>
           </div>
           <label>
             작업 디렉터리

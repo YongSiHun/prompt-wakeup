@@ -1,16 +1,26 @@
 pub mod adapters;
 pub mod detection;
-use crate::{models::TerminalInfo, security::require, storage::{err, Result}};
-use std::path::Path;
 #[cfg(windows)]
 use crate::security::SecurityValidator;
+use crate::{
+    models::TerminalInfo,
+    security::require,
+    storage::{err, Result},
+};
+use std::path::Path;
 
 pub fn info(kind: &str, name: &str, path: String, automatic: bool) -> TerminalInfo {
     let installed = Path::new(&path).exists();
     let validation_error = terminal_error(kind, installed);
     TerminalInfo {
-        id: format!("{kind}:{path}"), name: name.into(), kind: kind.into(), executable_path: path,
-        detected_automatically: automatic, installed, supported: validation_error.is_none(), validation_error,
+        id: format!("{kind}:{path}"),
+        name: name.into(),
+        kind: kind.into(),
+        executable_path: path,
+        detected_automatically: automatic,
+        installed,
+        supported: validation_error.is_none(),
+        validation_error,
     }
 }
 fn terminal_error(kind: &str, installed: bool) -> Option<String> {
@@ -21,26 +31,44 @@ fn terminal_error(kind: &str, installed: bool) -> Option<String> {
     }
 }
 pub fn manual(path: String) -> Result<TerminalInfo> {
-    let name = Path::new(&path).file_stem().and_then(|value| value.to_str()).unwrap_or("").to_ascii_lowercase();
+    let name = Path::new(&path)
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
     Ok(info(kind_from_name(&name), &name, path, false))
 }
 fn kind_from_name(name: &str) -> &str {
     match name {
         "cmd" | "powershell" | "pwsh" | "wt" | "terminal" | "warp" => name,
-        "git-bash" => "git_bash", "iterm" | "iterm2" => "iterm", _ => "unsupported",
+        "git-bash" => "git_bash",
+        "iterm" | "iterm2" => "iterm",
+        _ => "unsupported",
     }
 }
 pub fn validate(terminal: &TerminalInfo) -> Result<()> {
     let recognized = manual(terminal.executable_path.clone())?;
-    require(recognized.supported && recognized.kind == terminal.kind, "지원되는 터미널을 다시 선택하세요.")?;
+    require(
+        recognized.supported && recognized.kind == terminal.kind,
+        "지원되는 터미널을 다시 선택하세요.",
+    )?;
     validate_platform(terminal)
 }
 #[cfg(windows)]
-fn validate_platform(terminal: &TerminalInfo) -> Result<()> { SecurityValidator::executable(&terminal.executable_path).map(|_| ()) }
+fn validate_platform(terminal: &TerminalInfo) -> Result<()> {
+    SecurityValidator::executable(&terminal.executable_path).map(|_| ())
+}
 #[cfg(target_os = "macos")]
-fn validate_platform(terminal: &TerminalInfo) -> Result<()> { require(Path::new(&terminal.executable_path).is_dir(), "지원되는 macOS .app을 선택하세요.") }
+fn validate_platform(terminal: &TerminalInfo) -> Result<()> {
+    require(
+        Path::new(&terminal.executable_path).is_dir(),
+        "지원되는 macOS .app을 선택하세요.",
+    )
+}
 #[cfg(not(any(windows, target_os = "macos")))]
-fn validate_platform(_: &TerminalInfo) -> Result<()> { Err("지원하지 않는 운영체제입니다.".into()) }
+fn validate_platform(_: &TerminalInfo) -> Result<()> {
+    Err("지원하지 않는 운영체제입니다.".into())
+}
 pub trait TerminalAdapter: Send + Sync {
     fn launch(&self, terminal: &TerminalInfo, runner: &Path, id: &str) -> Result<()>;
 }

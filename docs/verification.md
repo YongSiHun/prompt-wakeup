@@ -12,6 +12,15 @@
 | 복잡도 사전 검사        | 자체 TypeScript 구문 트리 검사 최대 4. 공식 SonarJS·Clippy 통과 여부는 미확인                                                                 |
 | 패키징 스크립트         | PowerShell 구문 검사와 bash -n 통과. 실제 패키징은 미검증                                                                                     |
 
+## 이번 변경의 추가 검증
+
+- 전체 Prettier 3.7.4 적용 및 검사, 전체 Rust fmt 적용 및 검사 통과.
+- 캐시된 ESLint 9.39.5·TypeScript parser 8.72.1로 전체 기본 규칙 검사 통과. SonarJS를 제외한 임시 설정을 사용했으므로 정식 yarn lint 결과는 아닙니다.
+- TypeScript 5.9.3·로컬 React/Zustand 선언과 임시 Tauri 선언으로 앱 소스 strict·미사용 변수 검사 통과. 정식 의존성 기반 검사와 UI 테스트는 미실행입니다.
+- 실제 상태·시간·터미널 선택 코드를 실행한 임시 Node 하네스 7개 통과. 자동 탐색과 수동 지정의 충돌, 최신 상태 보존, 경로별 기본 터미널, 시각 변환을 확인했습니다.
+- 실제 Rust 버전 검사 함수를 추출한 하네스 3개 통과. 정상 출력, 큰 출력의 파이프 배출과 저장 크기 제한, 비정상 종료를 확인했습니다. 실제 AI CLI·Tauri 연결은 제외합니다.
+- 기존 Windows Node shim 검사 9개 통과. 추가한 Vitest UI 회귀 검사와 Cargo 전체 테스트는 npm 연결 권한 오류·chrono 캐시 부재로 실행하지 못했습니다.
+
 ## 남은 검증
 
 - CI에서 SonarJS S2201 초기화 오류가 보고되었습니다. TypeScript 전이 의존성과 ESLint·SonarJS 버전을 고정했으나 해결 여부는 아직 확인하지 못했습니다. 인지복잡도 상한은 5입니다.
