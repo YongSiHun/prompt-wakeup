@@ -12,8 +12,8 @@ impl TerminalDetector {
 fn platform_terminals() -> Vec<TerminalInfo> {
     let system = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
     [
-        ("cmd", "Command Prompt", format!("{system}/System32/cmd.exe")),
-        ("powershell", "Windows PowerShell", format!("{system}/System32/WindowsPowerShell/v1.0/powershell.exe")),
+        ("cmd", "Command Prompt", PathBuf::from(&system).join("System32").join("cmd.exe").to_string_lossy().into_owned()),
+        ("powershell", "Windows PowerShell", PathBuf::from(&system).join("System32").join("WindowsPowerShell").join("v1.0").join("powershell.exe").to_string_lossy().into_owned()),
         ("pwsh", "PowerShell 7", crate::ai_cli::find("pwsh").unwrap_or_else(|| "C:/Program Files/PowerShell/7/pwsh.exe".into())),
         ("wt", "Windows Terminal (cmd)", crate::ai_cli::find("wt").unwrap_or_default()),
         ("git_bash", "Git Bash", git_bash_path()),

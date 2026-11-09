@@ -18,7 +18,7 @@ fn cmd_line(runner: &Path, id: &str) -> Result<String> {
 }
 impl TerminalAdapter for CmdAdapter {
     fn launch(&self, terminal: &TerminalInfo, runner: &Path, id: &str) -> Result<()> {
-        let mut command = Command::new(&terminal.executable_path);
+        let mut command = Command::new(terminal.executable_path.replace('/', "\\"));
         command.args(["/d", "/s", "/c"]).raw_arg(cmd_line(runner, id)?);
         spawn(command)
     }
@@ -36,7 +36,7 @@ impl TerminalAdapter for WindowsTerminalAdapter {
     fn launch(&self, terminal: &TerminalInfo, runner: &Path, id: &str) -> Result<()> {
         let system = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
         let mut command = Command::new(&terminal.executable_path);
-        command.args(["-w", "new", "new-tab"]).arg(Path::new(&system).join("System32/cmd.exe"))
+        command.args(["-w", "new", "new-tab"]).arg(Path::new(&system).join("System32").join("cmd.exe"))
             .args(["/d", "/s", "/c"]).raw_arg(cmd_line(runner, id)?);
         spawn(command)
     }

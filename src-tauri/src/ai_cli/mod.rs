@@ -55,7 +55,7 @@ fn batch_command(path: &str, arguments: &[String]) -> Result<Command> {
     require(arguments.iter().all(|value| value.chars().all(safe_argument)), "지원하지 않는 셸 런처 인자입니다.")?;
     let system = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
     let quoted = arguments.iter().map(|value| format!("\"{value}\"")).collect::<Vec<_>>().join(" ");
-    let mut command = Command::new(Path::new(&system).join("System32/cmd.exe"));
+    let mut command = Command::new(Path::new(&system).join("System32").join("cmd.exe"));
     command.args(["/d", "/s", "/c"]).raw_arg(format!("\"\"{path}\" {quoted}\""));
     Ok(command)
 }
