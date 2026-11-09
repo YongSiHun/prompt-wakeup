@@ -118,14 +118,20 @@ fn adapters_keep_prompts_out_of_arguments() {
     let (directory, _manager) = setup();
     let input = input(directory.path());
     let plans = [crate::ai_cli::adapters::CodexAdapter.build_launch_plan(&input), crate::ai_cli::adapters::ClaudeAdapter.build_launch_plan(&input), crate::ai_cli::adapters::GeminiAdapter.build_launch_plan(&input)];
+    assert_adapter_arguments(&plans);
+    for plan in plans {
+        assert_prompt_delivery(&plan, &input.prompt);
+    }
+}
+fn assert_adapter_arguments(plans: &[LaunchPlan; 3]) {
     assert_eq!(plans[0].arguments, vec!["exec", "-"]);
     assert_eq!(plans[1].arguments, vec!["-p"]);
     assert_eq!(plans[2].arguments, vec!["-p", "Execute the task supplied on stdin"]);
-    for plan in plans {
-        assert!(!plan.arguments.contains(&input.prompt));
-        assert!(plan.environment.is_empty());
-        assert_eq!(plan.prompt_delivery, "stdin_utf8");
-    }
+}
+fn assert_prompt_delivery(plan: &LaunchPlan, prompt: &str) {
+    assert!(!plan.arguments.iter().any(|argument| argument == prompt));
+    assert!(plan.environment.is_empty());
+    assert_eq!(plan.prompt_delivery, "stdin_utf8");
 }
 #[test]
 fn result_sets_completion_only_after_cli_zero() {
@@ -218,12 +224,15 @@ fn persistence_failure_does_not_automatically_retry_launch() {
     std::fs::remove_file(&path).unwrap();
     std::fs::create_dir(&path).unwrap();
     assert!(manager.launch(&id, true).is_err());
+    assert_failed_execution(&manager);
+    dispatch_due(&manager);
+    assert_eq!(manager.snapshot().unwrap().executions.len(), 1);
+}
+fn assert_failed_execution(manager: &SchedulerManager) {
     let state = manager.snapshot().unwrap();
     assert_eq!(state.schedules[0].status, ScheduleStatus::Failed);
     assert_eq!(state.executions.len(), 1);
     assert_eq!(state.executions[0].status, ExecutionStatus::Failed);
-    dispatch_due(&manager);
-    assert_eq!(manager.snapshot().unwrap().executions.len(), 1);
 }
 #[test]
 fn idle_poll_does_not_write_or_request_refresh() {
