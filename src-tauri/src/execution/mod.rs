@@ -1,0 +1,17 @@
+pub mod process_probe;
+use crate::{models::*,storage::{StorageRepository,Result,atomic,err},security::SecurityValidator};
+use std::{fs::{self,OpenOptions},io::{Write,Read},process::Stdio};
+use hmac::{Hmac,Mac};use sha2::Sha256;
+#[derive(serde::Serialize,serde::Deserialize)]struct SignedTicket{payload:String,signature:String}
+pub struct ExecutionService;
+impl ExecutionService {
+ pub fn prepare(repo:&StorageRepository,s:&Schedule,id:&str)->Result<()> {SecurityValidator::input(&s.input,false)?;let ticket=Ticket{execution_id:id.into(),schedule:s.input.clone(),expires_at:chrono::Utc::now()+chrono::Duration::minutes(10)};let payload=serde_json::to_string(&ticket).map_err(err)?;let mut mac=Hmac::<Sha256>::new_from_slice(&repo.key(true)?).map_err(err)?;mac.update(payload.as_bytes());atomic(&repo.run_path(id,"ticket")?,&SignedTicket{payload,signature:hex::encode(mac.finalize().into_bytes())})}
+ pub fn result(repo:&StorageRepository,id:&str)->Result<Option<RunResult>> {let p=repo.run_path(id,"result")?;if !p.exists(){return Ok(None)}let r:RunResult=serde_json::from_slice(&fs::read(p).map_err(err)?).map_err(err)?;if r.execution_id!=id{return Err("실행 결과 ID 불일치".into())}Ok(Some(r))}
+}
+pub fn run_job(id:&str)->Result<()> {run_job_at(&StorageRepository::open()?,id)}
+fn run_job_at(repo:&StorageRepository,id:&str)->Result<()> {let p=repo.run_path(id,"ticket")?;let signed:SignedTicket=serde_json::from_slice(&fs::read(&p).map_err(err)?).map_err(err)?;let mut mac=Hmac::<Sha256>::new_from_slice(&repo.key(false)?).map_err(err)?;mac.update(signed.payload.as_bytes());mac.verify_slice(&hex::decode(signed.signature).map_err(err)?).map_err(|_|"실행 데이터 무결성 검증 실패")?;let ticket:Ticket=serde_json::from_str(&signed.payload).map_err(err)?;if ticket.execution_id!=id||ticket.expires_at<chrono::Utc::now(){return Err("만료되었거나 올바르지 않은 실행 요청".into())}let mut claim=OpenOptions::new().write(true).create_new(true).open(repo.run_path(id,"claim")?).map_err(|_|"이미 시작한 실행 요청입니다.")?;write!(claim,"{}",std::process::id()).map_err(err)?;claim.sync_all().map_err(err)?;
+ let result=execute(&ticket.schedule);let record=match result {Ok(code)=>RunResult{execution_id:id.into(),ended_at:chrono::Utc::now(),exit_code:code,error:if code==Some(0){None}else{Some("CLI가 실패했습니다. 외부 터미널에서 인증, 사용량 제한, 네트워크 및 권한 승인 정책을 확인하세요. 자동 재시도하지 않습니다.".into())}},Err(e)=>RunResult{execution_id:id.into(),ended_at:chrono::Utc::now(),exit_code:None,error:Some(e)}};
+ atomic(&repo.run_path(id,"result")?,&record)?;let _=fs::remove_file(p);println!("\nPromptWakeup: 종료 코드 {:?} {}",record.exit_code,record.error.as_deref().unwrap_or("정상 종료"));if ticket.schedule.keep_open {println!("창을 닫으려면 Enter를 누르세요.");let mut line=String::new();let _=std::io::stdin().read_line(&mut line);}Ok(())}
+fn execute(s:&ScheduleInput)->Result<Option<i32>> {SecurityValidator::input(s,false)?;let a=crate::ai_cli::adapter(s.cli);let plan=a.build_launch_plan(s);let mut command=crate::ai_cli::command(&plan.executable,&plan.arguments)?;command.current_dir(&plan.working_directory).stdin(Stdio::piped()).stdout(Stdio::inherit()).stderr(Stdio::inherit());let mut child=command.spawn().map_err(err)?;let mut stdin=child.stdin.take().ok_or("CLI stdin 없음")?;let prompt=s.prompt.clone();let writer=std::thread::spawn(move||stdin.write_all(prompt.as_bytes()));let status=child.wait().map_err(err)?;let write_result=writer.join().map_err(|_|"프롬프트 전달 스레드 오류")?;if status.success(){write_result.map_err(err)?;}Ok(status.code())}
+
+#[cfg(test)]mod tests;

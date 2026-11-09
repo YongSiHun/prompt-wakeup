@@ -1,0 +1,39 @@
+[package]
+name = "prompt-wakeup"
+version = "1.0.0"
+description = "Wake up your prompts on time."
+edition = "2021"
+license = "MIT"
+
+[lib]
+name = "prompt_wakeup"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "PromptWakeup"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tokio = { version = "1", features = ["time", "rt-multi-thread", "sync"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.10"
+uuid = { version = "1", features = ["v4", "serde"] }
+dirs = "6"
+tempfile = "3"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+rand = "0.8"
+which = "8"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_System_Console", "Win32_Foundation", "Win32_System_Threading"] }
