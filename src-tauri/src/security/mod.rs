@@ -1,6 +1,8 @@
-use crate::{models::ScheduleInput, storage::{err, Result}};
+use crate::{models::ScheduleInput, storage::Result};
 use chrono::{LocalResult, NaiveDateTime, TimeZone, Utc};
 use std::path::{Path, PathBuf};
+#[cfg(unix)]
+use crate::storage::err;
 
 pub struct SecurityValidator;
 impl SecurityValidator {

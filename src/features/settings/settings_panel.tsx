@@ -6,7 +6,10 @@ import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "../../stores/app_store";
 import type { Settings, CliKind, CliInfo, TerminalInfo } from "../../types";
 export function SettingsPanel() {
-  const store = useAppStore();
+  const store = useAppStore.getState();
+  const clis = useAppStore((state) => state.clis);
+  const terminals = useAppStore((state) => state.terminals);
+  const busy = useAppStore((state) => state.busy);
   const [permission, setPermission] = useState("확인하지 않음");
   const [settings, setSettings] = useState<Settings>({
     ...store.data!.settings,
@@ -23,7 +26,6 @@ export function SettingsPanel() {
         );
       else store.addCli(await invoke<CliInfo>("manual_cli", { kind, path }));
       await store.refresh();
-      setSettings({ ...useAppStore.getState().data!.settings });
     } catch (e) {
       store.setError(String(e));
     }
@@ -49,7 +51,7 @@ export function SettingsPanel() {
             value={settings.default_terminal}
             onChange={(e) => update("default_terminal", e.target.value)}
           >
-            {store.terminals
+            {terminals
               .filter((t) => t.supported)
               .map((t) => (
                 <option key={t.id} value={t.kind}>
@@ -119,19 +121,19 @@ export function SettingsPanel() {
       </label>
       <button
         className="primary"
-        disabled={store.busy}
+        disabled={busy}
         onClick={() => void store.perform("save_settings", { settings })}
       >
         설정 저장
       </button>
       <CliCatalog
-        clis={store.clis}
-        busy={store.busy}
+        clis={clis}
+        busy={busy}
         onDetect={() => void store.detect()}
         onManual={(kind) => void manual(kind)}
       />
       <TerminalCatalog
-        terminals={store.terminals}
+        terminals={terminals}
         onManual={() => void manual("terminal")}
       />
       <h3>권한 안내</h3>

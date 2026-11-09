@@ -53,7 +53,13 @@ impl SchedulerManager {
     }
     pub fn settings(&self, settings: Settings) -> Result<()> {
         crate::storage::settings_service::SettingsService::validate(&settings)?;
-        self.edit_state(|state| { state.settings = settings; Ok(()) })
+        self.edit_state(|state| {
+            let mut settings=settings;
+            settings.custom_cli_paths=state.settings.custom_cli_paths.clone();
+            settings.custom_terminals=state.settings.custom_terminals.clone();
+            state.settings=settings;
+            Ok(())
+        })
     }
     pub fn remember_terminal(&self, terminal: TerminalInfo) -> Result<()> {
         self.edit_state(|state| {

@@ -1,7 +1,39 @@
-use crate::models::TerminalInfo;
-use super::info;
+use crate::{models::{Settings, TerminalInfo}, terminal::info};
+use std::{collections::BTreeMap, path::PathBuf};
 pub struct TerminalDetector;
-impl TerminalDetector {pub fn detect()->Vec<TerminalInfo>{let mut out=vec![];
-#[cfg(windows)]{let system=std::env::var("SystemRoot").unwrap_or_else(|_|"C:\\Windows".into());for (kind,name,path) in [("cmd","Command Prompt",format!("{system}/System32/cmd.exe")),("powershell","Windows PowerShell",format!("{system}/System32/WindowsPowerShell/v1.0/powershell.exe")),("pwsh","PowerShell 7",crate::ai_cli::find("pwsh").unwrap_or_else(||"C:/Program Files/PowerShell/7/pwsh.exe".into())),("wt","Windows Terminal (cmd)",crate::ai_cli::find("wt").unwrap_or_default()),("git_bash","Git Bash", "C:/Program Files/Git/git-bash.exe".into())]{out.push(info(kind,name,path,true));}}
-#[cfg(target_os="macos")]{for (kind,name,bundle) in [("terminal","Terminal.app","Terminal.app"),("iterm","iTerm2","iTerm.app"),("warp","Warp","Warp.app")]{let mut p=format!("/Applications/{bundle}");for base in ["/System/Applications/Utilities".to_string(),dirs::home_dir().unwrap_or_default().join("Applications").to_string_lossy().into()]{let candidate=format!("{base}/{bundle}");if std::path::Path::new(&candidate).exists(){p=candidate}}out.push(info(kind,name,p,true));}}
-out}}
+impl TerminalDetector {
+    pub fn detect() -> Vec<TerminalInfo> { platform_terminals() }
+    pub fn configured(settings: &Settings) -> Vec<TerminalInfo> {
+        let custom = settings.custom_terminals.iter().filter_map(|terminal| super::manual(terminal.executable_path.clone()).ok());
+        Self::detect().into_iter().chain(custom).map(|terminal| (terminal.id.clone(), terminal)).collect::<BTreeMap<_, _>>().into_values().collect()
+    }
+}
+#[cfg(windows)]
+fn platform_terminals() -> Vec<TerminalInfo> {
+    let system = std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into());
+    [
+        ("cmd", "Command Prompt", format!("{system}/System32/cmd.exe")),
+        ("powershell", "Windows PowerShell", format!("{system}/System32/WindowsPowerShell/v1.0/powershell.exe")),
+        ("pwsh", "PowerShell 7", crate::ai_cli::find("pwsh").unwrap_or_else(|| "C:/Program Files/PowerShell/7/pwsh.exe".into())),
+        ("wt", "Windows Terminal (cmd)", crate::ai_cli::find("wt").unwrap_or_default()),
+        ("git_bash", "Git Bash", git_bash_path()),
+    ].into_iter().map(|(kind, name, path)| info(kind, name, path, true)).collect()
+}
+#[cfg(windows)]
+fn git_bash_path() -> String {
+    let bases = [std::env::var_os("ProgramFiles").map(PathBuf::from), std::env::var_os("LOCALAPPDATA").map(|path| PathBuf::from(path).join("Programs"))];
+    bases.into_iter().flatten().map(|base| base.join("Git/git-bash.exe")).find(|path| path.is_file()).unwrap_or_else(|| PathBuf::from("C:/Program Files/Git/git-bash.exe")).to_string_lossy().into()
+}
+#[cfg(target_os = "macos")]
+fn platform_terminals() -> Vec<TerminalInfo> {
+    [("terminal", "Terminal.app", "Terminal.app"), ("iterm", "iTerm2", "iTerm.app"), ("warp", "Warp", "Warp.app")]
+        .into_iter().map(|(kind, name, bundle)| info(kind, name, mac_bundle(bundle), true)).collect()
+}
+#[cfg(target_os = "macos")]
+fn mac_bundle(bundle: &str) -> String {
+    let home = dirs::home_dir().unwrap_or_default().join("Applications");
+    [PathBuf::from("/Applications"), PathBuf::from("/System/Applications/Utilities"), home]
+        .into_iter().map(|base| base.join(bundle)).find(|path| path.is_dir()).unwrap_or_else(|| PathBuf::from("/Applications").join(bundle)).to_string_lossy().into()
+}
+#[cfg(not(any(windows, target_os = "macos")))]
+fn platform_terminals() -> Vec<TerminalInfo> { Vec::new() }

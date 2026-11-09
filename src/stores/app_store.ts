@@ -14,54 +14,86 @@ interface Store {
     args?: Record<string, unknown>,
   ) => Promise<boolean>;
   setError: (error: string | null) => void;
-  addTerminal: (t: TerminalInfo) => void;
-  addCli: (c: CliInfo) => void;
+  addTerminal: (terminal: TerminalInfo) => void;
+  addCli: (cli: CliInfo) => void;
 }
-export const useAppStore = create<Store>((set, get) => ({
+let pendingOperations = 0;
+let snapshotRequest = 0;
+let detectionRequest: Promise<void> | null = null;
+async function busy<T>(operation: () => Promise<T>): Promise<T> {
+  pendingOperations++;
+  useAppStore.setState({ busy: true });
+  try {
+    return await operation();
+  } finally {
+    pendingOperations--;
+    useAppStore.setState({ busy: pendingOperations > 0 });
+  }
+}
+async function refresh() {
+  const request = ++snapshotRequest;
+  try {
+    const data = await invoke<Snapshot>("snapshot");
+    if (request === snapshotRequest) useAppStore.setState({ data });
+  } catch (error) {
+    reportError(error);
+  }
+}
+function reportError(error: unknown) {
+  useAppStore.setState({ error: String(error) });
+}
+async function discover() {
+  try {
+    const [clis, terminals] = await Promise.all([
+      invoke<CliInfo[]>("detect_clis"),
+      invoke<TerminalInfo[]>("detect_terminals"),
+    ]);
+    useAppStore.setState({ clis, terminals });
+  } catch (error) {
+    reportError(error);
+  }
+}
+function detect() {
+  detectionRequest ??= busy(discover).finally(() => {
+    detectionRequest = null;
+  });
+  return detectionRequest;
+}
+async function perform(
+  command: string,
+  args?: Record<string, unknown>,
+): Promise<boolean> {
+  return busy(async () => {
+    useAppStore.setState({ error: null });
+    try {
+      await invoke(command, args);
+      await useAppStore.getState().refresh();
+      return true;
+    } catch (error) {
+      reportError(error);
+      return false;
+    }
+  });
+}
+export const useAppStore = create<Store>((set) => ({
   data: null,
   clis: [],
   terminals: [],
   error: null,
   busy: false,
+  refresh,
+  detect,
+  perform,
   setError: (error) => set({ error }),
-  addTerminal: (t) =>
-    set((s) => ({
-      terminals: [...s.terminals.filter((x) => x.id !== t.id), t],
+  addTerminal: (terminal) =>
+    set((state) => ({
+      terminals: [
+        ...state.terminals.filter((item) => item.id !== terminal.id),
+        terminal,
+      ],
     })),
-  addCli: (c) =>
-    set((s) => ({ clis: [...s.clis.filter((x) => x.kind !== c.kind), c] })),
-  refresh: async () => {
-    try {
-      set({ data: await invoke<Snapshot>("snapshot") });
-    } catch (e) {
-      set({ error: String(e) });
-    }
-  },
-  detect: async () => {
-    set({ busy: true });
-    try {
-      const [clis, terminals] = await Promise.all([
-        invoke<CliInfo[]>("detect_clis"),
-        invoke<TerminalInfo[]>("detect_terminals"),
-      ]);
-      set({ clis, terminals });
-    } catch (e) {
-      set({ error: String(e) });
-    } finally {
-      set({ busy: false });
-    }
-  },
-  perform: async (command, args) => {
-    set({ busy: true, error: null });
-    try {
-      await invoke(command, args);
-      await get().refresh();
-      return true;
-    } catch (e) {
-      set({ error: String(e) });
-      return false;
-    } finally {
-      set({ busy: false });
-    }
-  },
+  addCli: (cli) =>
+    set((state) => ({
+      clis: [...state.clis.filter((item) => item.kind !== cli.kind), cli],
+    })),
 }));

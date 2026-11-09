@@ -9,7 +9,9 @@
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "lint": "eslint . --max-warnings 0",
+    "test:windows": "node --test tests/windows_shim.test.cjs"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
@@ -31,6 +33,9 @@
     "@testing-library/react": "^16.3.0",
     "jsdom": "^26.1.0",
     "@testing-library/dom": "^10.4.0",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint-plugin-sonarjs": "^3.0.0"
   }
 }

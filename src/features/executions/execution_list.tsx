@@ -1,6 +1,6 @@
 import { StatusBadge } from "../../components/status_badge";
 import { useAppStore } from "../../stores/app_store";
-import { formatTime, labels } from "../../lib/time";
+import { formatTime } from "../../lib/time";
 export function ExecutionList() {
   const records = useAppStore((s) => s.data!.executions);
   return (

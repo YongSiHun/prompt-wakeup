@@ -46,13 +46,17 @@ fn process_outcome(app: &tauri::AppHandle, manager: &ManagerState, outcome: Tick
 }
 fn dispatch(app: tauri::AppHandle, manager: ManagerState, id: String) {
     tauri::async_runtime::spawn(async move {
-        let result = tauri::async_runtime::spawn_blocking(move || manager.launch(&id, false)).await.map_err(err).and_then(|result| result);
-        report_launch(&app, result);
+        let worker = manager.clone();
+        let result = tauri::async_runtime::spawn_blocking(move || worker.launch(&id, false)).await.map_err(err).and_then(|result| result);
+        report_launch(&app, &manager, result);
     });
 }
-fn report_launch(app: &tauri::AppHandle, result: Result<()>) {
+fn report_launch(app: &tauri::AppHandle, manager: &ManagerState, result: Result<()>) {
     changed(app);
-    if let Err(error) = result { report_error(app, error); }
+    if let Err(error) = result {
+        report_error(app, error.clone());
+        notify(app, manager, vec![error]);
+    }
 }
 fn notify(app: &tauri::AppHandle, manager: &ManagerState, messages: Vec<String>) {
     if !manager.notifications_enabled() { return; }

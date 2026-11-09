@@ -1,5 +1,35 @@
-use tauri::{Manager,Emitter,menu::{Menu,MenuItem},tray::{TrayIconBuilder,TrayIconEvent,MouseButton,MouseButtonState}};
-use crate::scheduler::SchedulerManager;use std::sync::Arc;
-pub fn show(app:&tauri::AppHandle){if let Some(w)=app.get_webview_window("main"){let _=w.show();let _=w.unminimize();let _=w.set_focus();}}
+use crate::{runtime, scheduler::SchedulerManager};
+use std::sync::Arc;
+use tauri::{Emitter, Manager, menu::{IsMenuItem, Menu, MenuEvent, MenuItem}, tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent}};
+pub fn show(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") { let _ = window.show(); let _ = window.unminimize(); let _ = window.set_focus(); }
+}
 pub struct TrayManager;
-impl TrayManager {pub fn install(app:&tauri::App)->tauri::Result<()> {let open=MenuItem::with_id(app,"open","PromptWakeup 열기",true,None::<&str>)?;let schedules=MenuItem::with_id(app,"schedules","예약 작업 보기 / 다음 예약 확인",true,None::<&str>)?;let status=MenuItem::with_id(app,"status","스케줄러 상태 확인",true,None::<&str>)?;let quit=MenuItem::with_id(app,"quit","완전히 종료",true,None::<&str>)?;let menu=Menu::with_items(app,&[&open,&schedules,&status,&quit])?;let mut pixels=vec![0u8;32*32*4];for y in 0..32 {for x in 0..32 {let i=(y*32+x)*4;let hand=(14..18).contains(&x)&&(7..19).contains(&y)||(14..25).contains(&x)&&(15..19).contains(&y);pixels[i..i+4].copy_from_slice(if hand{&[255,255,255,255]}else{&[80,84,222,255]});}}let icon=tauri::image::Image::new_owned(pixels,32,32);TrayIconBuilder::with_id("main-tray").icon(icon).tooltip("PromptWakeup — 예약 감시 중").menu(&menu).show_menu_on_left_click(false).on_menu_event(|app,event|{match event.id.as_ref(){"quit"=>{let m=app.state::<Arc<SchedulerManager>>();match m.stop(){Ok(())=>app.exit(0),Err(e)=>{show(app);let _=app.emit("backend-error",e);}}},"schedules"=>{show(app);let _=app.emit("navigate","schedules");},"status"=>{show(app);let _=app.emit("navigate","status");},_=>show(app)}}).on_tray_icon_event(|tray,event|{if let TrayIconEvent::Click{button:MouseButton::Left,button_state:MouseButtonState::Up,..}=event{show(tray.app_handle());}}).build(app)?;Ok(())}}
+impl TrayManager {
+    pub fn install(app: &tauri::App) -> tauri::Result<()> {
+        let menu = menu(app)?;
+        let icon = app.default_window_icon().cloned().unwrap_or_else(|| tauri::image::Image::new_owned(vec![88, 85, 217, 255], 1, 1));
+        TrayIconBuilder::with_id("main-tray").icon(icon).tooltip("PromptWakeup — 예약 감시 중")
+            .menu(&menu).show_menu_on_left_click(false).on_menu_event(menu_event).on_tray_icon_event(tray_event).build(app)?;
+        Ok(())
+    }
+}
+fn menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
+    let entries = [("open", "PromptWakeup 열기"), ("schedules", "예약 작업 보기 / 다음 예약 확인"), ("status", "스케줄러 상태 확인"), ("quit", "완전히 종료")];
+    let items = entries.into_iter().map(|(id, label)| MenuItem::with_id(app, id, label, true, None::<&str>)).collect::<tauri::Result<Vec<_>>>()?;
+    let references: Vec<&dyn IsMenuItem<tauri::Wry>> = items.iter().map(|item| item as &dyn IsMenuItem<tauri::Wry>).collect();
+    Menu::with_items(app, &references)
+}
+fn menu_event(app: &tauri::AppHandle, event: MenuEvent) {
+    match event.id.as_ref() { "quit" => quit(app), "schedules" | "status" => navigate(app, event.id.as_ref()), _ => show(app) }
+}
+fn navigate(app: &tauri::AppHandle, page: &str) { show(app); let _ = app.emit("navigate", page); }
+fn quit(app: &tauri::AppHandle) {
+    match app.state::<Arc<SchedulerManager>>().stop() {
+        Ok(()) => app.exit(0),
+        Err(error) => { show(app); runtime::report_error(app, error); }
+    }
+}
+fn tray_event(tray: &TrayIcon, event: TrayIconEvent) {
+    if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event { show(tray.app_handle()); }
+}

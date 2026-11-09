@@ -1,8 +1,101 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useAppStore } from "../../stores/app_store";
-import type { Schedule, CliKind } from "../../types";
+import type {
+  Schedule,
+  CliKind,
+  Settings,
+  TerminalInfo,
+  CliInfo,
+  ScheduleInput,
+} from "../../types";
 import { localInput, utcFromLocal } from "../../lib/time";
+interface Draft {
+  name: string;
+  cli: CliKind;
+  terminal: string;
+  directory: string;
+  prompt: string;
+  time: string;
+  keepOpen: boolean;
+}
+function initialDraft(
+  schedule: Schedule | undefined,
+  settings: Settings,
+  terminals: TerminalInfo[],
+): Draft {
+  if (schedule) return existingDraft(schedule);
+  return defaultDraft(settings, terminals);
+}
+function existingDraft(schedule: Schedule): Draft {
+  return {
+    name: schedule.name,
+    cli: schedule.cli,
+    terminal: schedule.terminal.id,
+    directory: schedule.working_directory,
+    prompt: schedule.prompt,
+    time: localInput(new Date(schedule.scheduled_at)),
+    keepOpen: schedule.keep_open,
+  };
+}
+function defaultDraft(settings: Settings, terminals: TerminalInfo[]): Draft {
+  return {
+    name: "",
+    cli: settings.default_cli,
+    terminal:
+      terminals.find(
+        (terminal) =>
+          terminal.kind === settings.default_terminal && terminal.supported,
+      )?.id ?? "",
+    directory: settings.default_directory,
+    prompt: "",
+    time: localInput(new Date(Date.now() + 3600_000)),
+    keepOpen: settings.keep_open,
+  };
+}
+function formTerminals(
+  schedule: Schedule | undefined,
+  terminals: TerminalInfo[],
+) {
+  if (!schedule) return terminals;
+  if (terminals.some((terminal) => terminal.id === schedule.terminal.id))
+    return terminals;
+  return [...terminals, schedule.terminal];
+}
+function buildInput(
+  draft: Draft,
+  terminals: TerminalInfo[],
+  clis: CliInfo[],
+): ScheduleInput {
+  const terminal = terminals.find((terminal) => terminal.id === draft.terminal);
+  const cli = clis.find((cli) => cli.kind === draft.cli);
+  if (!terminal?.supported) throw new Error("지원되는 터미널을 선택하세요.");
+  if (!cli?.available)
+    throw new Error("CLI를 설치하거나 설정에서 경로를 지정하세요.");
+  return {
+    name: draft.name,
+    cli: draft.cli,
+    cli_path: cli.executable_path,
+    terminal,
+    working_directory: draft.directory,
+    prompt: draft.prompt,
+    scheduled_at: utcFromLocal(draft.time),
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    local_time: draft.time,
+    keep_open: draft.keepOpen,
+  };
+}
+function normalizeTime(value: string) {
+  return value.length === 16 ? value + ":00" : value;
+}
+async function chooseFolder(onSelect: (path: string) => void) {
+  try {
+    const path = await open({ directory: true, multiple: false });
+    if (typeof path === "string") onSelect(path);
+  } catch (error) {
+    useAppStore.getState().setError(String(error));
+  }
+}
 export function ScheduleForm({
   schedule,
   onClose,
@@ -10,61 +103,28 @@ export function ScheduleForm({
   schedule?: Schedule;
   onClose: () => void;
 }) {
-  const { data, clis, terminals, perform, busy, setError } = useAppStore();
-  const defaults = data!.settings;
-  const [name, setName] = useState(schedule?.name ?? "");
-  const [cli, setCli] = useState<CliKind>(
-    schedule?.cli ?? defaults.default_cli,
+  const settings = useAppStore((state) => state.data!.settings);
+  const clis = useAppStore((state) => state.clis);
+  const terminals = useAppStore((state) => state.terminals);
+  const busy = useAppStore((state) => state.busy);
+  const [draft, setDraft] = useState(() =>
+    initialDraft(schedule, settings, terminals),
   );
-  const [terminal, setTerminal] = useState(
-    schedule?.terminal.id ??
-      terminals.find((t) => t.kind === defaults.default_terminal && t.supported)
-        ?.id ??
-      "",
-  );
-  const [directory, setDirectory] = useState(
-    schedule?.working_directory ?? defaults.default_directory,
-  );
-  const [prompt, setPrompt] = useState(schedule?.prompt ?? "");
-  const [time, setTime] = useState(
-    schedule
-      ? localInput(new Date(schedule.scheduled_at))
-      : localInput(new Date(Date.now() + 3600_000)),
-  );
-  const [keepOpen, setKeepOpen] = useState(
-    schedule?.keep_open ?? defaults.keep_open,
-  );
-  const availableTerminals =
-    schedule && !terminals.some((t) => t.id === schedule.terminal.id)
-      ? [...terminals, schedule.terminal]
-      : terminals;
-  const selectedCli = clis.find((c) => c.kind === cli);
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
+  const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+    setDraft((current) => ({ ...current, [key]: value }));
+  const available = formTerminals(schedule, terminals);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const store = useAppStore.getState();
     try {
-      const selected = availableTerminals.find((t) => t.id === terminal);
-      if (!selected?.supported)
-        throw new Error("지원되는 터미널을 선택하세요.");
-      if (!selectedCli?.available)
-        throw new Error("CLI를 설치하거나 설정에서 경로를 지정하세요.");
-      const ok = await perform("save_schedule", {
+      const input = buildInput(draft, available, clis);
+      const saved = await store.perform("save_schedule", {
         id: schedule?.id ?? null,
-        input: {
-          name,
-          cli,
-          cli_path: selectedCli.executable_path,
-          terminal: selected,
-          working_directory: directory,
-          prompt,
-          scheduled_at: utcFromLocal(time),
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          local_time: time,
-          keep_open: keepOpen,
-        },
+        input,
       });
-      if (ok) onClose();
-    } catch (e) {
-      setError(String(e));
+      if (saved) onClose();
+    } catch (error) {
+      store.setError(String(error));
     }
   }
   return (
@@ -87,8 +147,8 @@ export function ScheduleForm({
             <input
               required
               maxLength={100}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              value={draft.name}
+              onChange={(event) => update("name", event.target.value)}
               autoFocus
             />
           </label>
@@ -96,13 +156,15 @@ export function ScheduleForm({
             <label>
               AI CLI
               <select
-                value={cli}
-                onChange={(e) => setCli(e.target.value as CliKind)}
+                value={draft.cli}
+                onChange={(event) =>
+                  update("cli", event.target.value as CliKind)
+                }
               >
-                {(["codex", "claude", "gemini"] as const).map((k) => (
-                  <option key={k} value={k}>
-                    {k}
-                    {clis.find((c) => c.kind === k)?.available
+                {(["codex", "claude", "gemini"] as const).map((kind) => (
+                  <option key={kind} value={kind}>
+                    {kind}
+                    {clis.find((cli) => cli.kind === kind)?.available
                       ? ""
                       : " (사용 불가)"}
                   </option>
@@ -113,14 +175,18 @@ export function ScheduleForm({
               외부 터미널
               <select
                 required
-                value={terminal}
-                onChange={(e) => setTerminal(e.target.value)}
+                value={draft.terminal}
+                onChange={(event) => update("terminal", event.target.value)}
               >
                 <option value="">터미널 선택</option>
-                {availableTerminals.map((t) => (
-                  <option key={t.id} value={t.id} disabled={!t.supported}>
-                    {t.name}
-                    {!t.supported ? " (지원 불가)" : ""}
+                {available.map((terminal) => (
+                  <option
+                    key={terminal.id}
+                    value={terminal.id}
+                    disabled={!terminal.supported}
+                  >
+                    {terminal.name}
+                    {terminal.supported ? "" : " (지원 불가)"}
                   </option>
                 ))}
               </select>
@@ -131,19 +197,14 @@ export function ScheduleForm({
             <div className="row">
               <input
                 required
-                value={directory}
-                onChange={(e) => setDirectory(e.target.value)}
+                value={draft.directory}
+                onChange={(event) => update("directory", event.target.value)}
               />
               <button
                 type="button"
-                onClick={async () => {
-                  try {
-                    const p = await open({ directory: true, multiple: false });
-                    if (typeof p === "string") setDirectory(p);
-                  } catch (e) {
-                    setError(String(e));
-                  }
-                }}
+                onClick={() =>
+                  void chooseFolder((path) => update("directory", path))
+                }
               >
                 폴더 선택
               </button>
@@ -154,8 +215,8 @@ export function ScheduleForm({
             <textarea
               required
               rows={7}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              value={draft.prompt}
+              onChange={(event) => update("prompt", event.target.value)}
               placeholder="예약 시간에 CLI가 처리할 작업을 입력하세요."
             />
           </label>
@@ -166,21 +227,17 @@ export function ScheduleForm({
               required
               type="datetime-local"
               step="1"
-              value={time}
-              onChange={(e) =>
-                setTime(
-                  e.target.value.length === 16
-                    ? e.target.value + ":00"
-                    : e.target.value,
-                )
+              value={draft.time}
+              onChange={(event) =>
+                update("time", normalizeTime(event.target.value))
               }
             />
           </label>
           <label className="check">
             <input
               type="checkbox"
-              checked={keepOpen}
-              onChange={(e) => setKeepOpen(e.target.checked)}
+              checked={draft.keepOpen}
+              onChange={(event) => update("keepOpen", event.target.checked)}
             />
             종료 후 터미널 유지
           </label>

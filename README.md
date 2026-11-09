@@ -23,9 +23,12 @@ yarn tauri dev
 ```
 
 ```sh
+yarn lint
 yarn typecheck
 yarn test
-node scripts/offline_check.cjs
+# Windows 전용 전송 검사
+yarn test:windows
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D clippy::cognitive_complexity
 cargo check --manifest-path src-tauri/Cargo.toml --all-targets
 cargo test --manifest-path src-tauri/Cargo.toml
 ```

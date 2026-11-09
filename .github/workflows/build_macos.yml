@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: '선택한 v* 태그의 빌드 결과를 GitHub Release에 게시'
+        description: "선택한 v* 태그의 빌드 결과를 GitHub Release에 게시"
         type: boolean
         required: false
         default: false
