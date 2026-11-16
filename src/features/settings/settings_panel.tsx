@@ -1,17 +1,14 @@
-import { TerminalCatalog } from "../terminals/terminal_catalog";
 import { CliCatalog } from "../ai_clis/cli_catalog";
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "../../stores/app_store";
 import type { Settings, CliKind } from "../../types";
-import { defaultTerminalId } from "../../lib/executables";
 import { useExecutablePicker } from "../../hooks/use_executable_picker";
 export function SettingsPanel() {
   const store = useAppStore.getState();
   const clis = useAppStore((state) => state.clis);
-  const terminals = useAppStore((state) => state.terminals);
-  const { picking, chooseTerminal, chooseCli } = useExecutablePicker();
+  const { picking, chooseCli } = useExecutablePicker();
   const busy = useAppStore((state) => state.busy) || picking;
   const [permission, setPermission] = useState("확인하지 않음");
   const [settings, setSettings] = useState<Settings>({
@@ -36,25 +33,9 @@ export function SettingsPanel() {
             ))}
           </select>
         </label>
-        <label>
-          기본 터미널
-          <select
-            value={defaultTerminalId(terminals, settings.default_terminal)}
-            onChange={(event) => update("default_terminal", event.target.value)}
-          >
-            <option value="">터미널 선택</option>
-            {terminals
-              .filter((terminal) => terminal.supported)
-              .map((terminal) => (
-                <option key={terminal.id} value={terminal.id}>
-                  {terminal.name}
-                  {terminal.detected_automatically
-                    ? ""
-                    : " · " + terminal.executable_path}
-                </option>
-              ))}
-          </select>
-        </label>
+        <p className="hint">
+          모든 작업은 앱 내 터미널에서 실행되며 출력이 자동 저장됩니다.
+        </p>
       </div>
       <label>
         기본 작업 폴더
@@ -109,14 +90,6 @@ export function SettingsPanel() {
       <label className="check">
         <input
           type="checkbox"
-          checked={settings.keep_open}
-          onChange={(event) => update("keep_open", event.target.checked)}
-        />
-        기본 터미널 창 유지
-      </label>
-      <label className="check">
-        <input
-          type="checkbox"
           checked={settings.notifications}
           onChange={(event) => update("notifications", event.target.checked)}
         />
@@ -135,14 +108,6 @@ export function SettingsPanel() {
         onDetect={() => void store.detect()}
         onManual={async (kind) => {
           if (await chooseCli(kind)) update("default_cli", kind);
-        }}
-      />
-      <TerminalCatalog
-        terminals={terminals}
-        busy={busy}
-        onManual={async () => {
-          const terminal = await chooseTerminal();
-          if (terminal) update("default_terminal", terminal.id);
         }}
       />
       <h3>권한 안내</h3>
@@ -165,14 +130,10 @@ export function SettingsPanel() {
       </button>
       <p className="hint">
         관리자 권한은 필요하지 않습니다. CLI의 기존 로그인 및 승인 정책을
-        따릅니다. 인증·사용량·네트워크·권한 오류는 외부 터미널에서 확인 후 수동
+        따릅니다. 인증·사용량·네트워크·권한 오류는 앱 내 터미널에서 확인 후 수동
         재실행하세요.
       </p>
-      <p className="hint">
-        macOS: 터미널 자동화는 최초 OS 승인이 필요합니다. 거부했다면 시스템 설정
-        → 개인정보 보호 및 보안 → 자동화를 확인하세요. 알림은 OS 알림 설정에
-        따라 제한될 수 있습니다. 현재 권한 상태를 자동으로 판정하지 않습니다.
-      </p>
+      <p className="hint">알림은 OS 알림 설정에 따라 제한될 수 있습니다.</p>
     </section>
   );
 }

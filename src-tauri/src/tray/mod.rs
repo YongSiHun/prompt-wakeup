@@ -35,7 +35,7 @@ fn menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
     let entries = [
         ("open", "PromptWakeup 열기"),
         ("schedules", "예약 작업 보기 / 다음 예약 확인"),
-        ("status", "스케줄러 상태 확인"),
+        ("executions", "터미널 / 실행 결과 보기"),
         ("quit", "완전히 종료"),
     ];
     let items = entries
@@ -51,7 +51,7 @@ fn menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
 fn menu_event(app: &tauri::AppHandle, event: MenuEvent) {
     match event.id.as_ref() {
         "quit" => quit(app),
-        "schedules" | "status" => navigate(app, event.id.as_ref()),
+        "schedules" | "executions" => navigate(app, event.id.as_ref()),
         _ => show(app),
     }
 }

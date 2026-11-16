@@ -65,7 +65,7 @@ fn lost_process(
     now: DateTime<Utc>,
     pid: u32,
 ) -> Option<ExecutionRecord> {
-    (!process_probe::alive(pid)).then(|| unknown(execution, now, "실행 래퍼가 결과를 기록하지 않고 종료되었습니다. 외부 터미널과 CLI가 중단되었는지 확인한 후 수동 재실행하세요.".into()))
+    (!process_probe::alive(pid)).then(|| unknown(execution, now, "실행 래퍼가 결과를 기록하지 않고 종료되었습니다. 앱 내 터미널 출력과 CLI가 중단되었는지 확인한 후 수동 재실행하세요.".into()))
 }
 fn expired_claim(
     repository: &StorageRepository,
@@ -80,6 +80,7 @@ fn expired_claim(
     Some(unknown(
         execution,
         now,
-        "실행 래퍼 시작을 확인할 수 없습니다. 외부 터미널을 확인한 후 수동 재실행하세요.".into(),
+        "실행 래퍼 시작을 확인할 수 없습니다. 앱 내 터미널 출력을 확인한 후 수동 재실행하세요."
+            .into(),
     ))
 }

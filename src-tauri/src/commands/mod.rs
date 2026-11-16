@@ -88,3 +88,17 @@ pub fn notification_permission(app: tauri::AppHandle, request: bool) -> Result<S
         .map(|permission| format!("{permission:?}"))
         .map_err(err)
 }
+
+#[tauri::command]
+pub async fn execution_output(manager: ManagerState<'_>, id: String) -> Result<String> {
+    let repository = manager.repository.clone();
+    blocking(move || {
+        let path = repository.run_path(&id, "output")?;
+        match std::fs::read(path) {
+            Ok(bytes) => Ok(String::from_utf8_lossy(&bytes).into_owned()),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+            Err(error) => Err(err(error)),
+        }
+    })
+    .await
+}

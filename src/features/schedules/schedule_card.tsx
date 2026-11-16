@@ -82,7 +82,7 @@ function PendingActions({
 }
 async function confirmedAction(id: string, action: "run" | "delete") {
   const messages = {
-    run: "외부 터미널에서 이 작업을 지금 실행할까요? 결과 미확인 작업은 기존 CLI가 중단되었는지 확인하세요.",
+    run: "앱 내 터미널에서 이 작업을 지금 실행할까요? 결과 미확인 작업은 기존 CLI가 중단되었는지 확인하세요.",
     delete: "예약을 삭제할까요? 실행 이력은 보존합니다.",
   };
   if (window.confirm(messages[action]))

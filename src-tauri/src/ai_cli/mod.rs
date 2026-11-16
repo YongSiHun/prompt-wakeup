@@ -233,14 +233,9 @@ pub fn plan(input: &ScheduleInput, arguments: Vec<String>) -> LaunchPlan {
         arguments,
         working_directory: input.working_directory.clone(),
         environment: Default::default(),
-        terminal_adapter_id: input.terminal.kind.clone(),
+        terminal_adapter_id: "embedded".into(),
         prompt_delivery: "stdin_utf8".into(),
         status_tracking_strategy: "signed_ticket_result_file".into(),
-        close_behavior: if input.keep_open {
-            "wait_for_enter"
-        } else {
-            "exit"
-        }
-        .into(),
+        close_behavior: "persist_output".into(),
     }
 }

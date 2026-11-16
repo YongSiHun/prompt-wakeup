@@ -11,20 +11,8 @@ fn main() {
     }
 }
 fn run_job(id: &str) {
-    attach_console();
     if let Err(error) = prompt_wakeup::execution::run_job(id) {
         eprintln!("PromptWakeup: {error}");
         std::process::exit(1);
     }
 }
-#[cfg(windows)]
-fn attach_console() {
-    // The visible terminal is the parent; this never allocates an internal terminal.
-    unsafe {
-        windows_sys::Win32::System::Console::AttachConsole(
-            windows_sys::Win32::System::Console::ATTACH_PARENT_PROCESS,
-        );
-    }
-}
-#[cfg(not(windows))]
-fn attach_console() {}

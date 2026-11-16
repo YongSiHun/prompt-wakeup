@@ -154,13 +154,13 @@ impl Default for Settings {
             custom_cli_paths: BTreeMap::new(),
             custom_terminals: Vec::new(),
             default_cli: CliKind::Codex,
-            default_terminal: if cfg!(windows) { "cmd" } else { "terminal" }.into(),
+            default_terminal: "embedded".into(),
             default_directory: dirs::home_dir()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .into(),
             theme: "system".into(),
-            keep_open: true,
+            keep_open: false,
             notifications: true,
             retention_days: 90,
         }

@@ -1,3 +1,4 @@
+import { ExecutionList } from "../executions/execution_list";
 import { useCallback, useMemo, useState } from "react";
 import { useAppStore } from "../../stores/app_store";
 import { formatTime } from "../../lib/time";
@@ -5,7 +6,7 @@ import { ScheduleCard } from "./schedule_card";
 import { ScheduleForm } from "./schedule_form";
 import type { Schedule } from "../../types";
 type Editor = Schedule | "new" | null;
-export function SchedulePage({ showStatus = false }: { showStatus?: boolean }) {
+export function SchedulePage() {
   const [editor, setEditor] = useState<Editor>(null);
   const [detail, setDetail] = useState<Schedule | null>(null);
   const create = useCallback(() => setEditor("new"), []);
@@ -13,25 +14,16 @@ export function SchedulePage({ showStatus = false }: { showStatus?: boolean }) {
   return (
     <>
       <ScheduleSummary />
-      {showStatus && (
-        <div className="notice">
-          절전 복귀·시스템 시간 변경으로 놓친 예약은 자동 실행하지 않습니다.
-          실행 중인 터미널은 앱 완전 종료 후에도 계속 작업할 수 있으며, 결과는
-          다음 시작 시 반영합니다.
-        </div>
-      )}
       <ScheduleList onCreate={create} onEdit={edit} onDetail={setDetail} />
       <p className="hint">
         사용량 제한 해제 시각은 직접 입력합니다. 예약 실패 시 자동 재시도하지
         않습니다.
       </p>
+      <ExecutionList />
       <ScheduleEditor editor={editor} onClose={() => setEditor(null)} />
       <ScheduleDetail schedule={detail} onClose={() => setDetail(null)} />
     </>
   );
-}
-export function StatusPage() {
-  return <SchedulePage showStatus />;
 }
 function summarize(schedules: Schedule[]) {
   const pending = schedules.filter((schedule) => schedule.status === "pending");
@@ -66,7 +58,7 @@ function ScheduleSummary() {
       </section>
       <section>
         <small>실행 환경</small>
-        <strong>외부 터미널</strong>
+        <strong>앱 내 터미널</strong>
       </section>
     </div>
   );
@@ -157,9 +149,7 @@ function ScheduleDetail({
           <h2>{schedule.name}</h2>
           <button onClick={onClose}>닫기</button>
         </header>
-        <p>
-          {schedule.cli} · {schedule.terminal.name}
-        </p>
+        <p>{schedule.cli} · 앱 내 터미널</p>
         <p>{schedule.working_directory}</p>
         <p>
           {formatTime(schedule.scheduled_at)} · {schedule.timezone}

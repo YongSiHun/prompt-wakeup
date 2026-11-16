@@ -60,6 +60,7 @@ it("예약 목록과 취소 액션을 표시한다", async () => {
   });
   render(<App />);
   expect(screen.getByText("예약 목록 테스트")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "스케줄러 상태" })).toBeNull();
   fireEvent.click(screen.getByText("취소"));
   await waitFor(() =>
     expect(perform).toHaveBeenCalledWith("schedule_action", {

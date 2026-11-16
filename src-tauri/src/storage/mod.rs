@@ -98,7 +98,7 @@ impl StorageRepository {
     pub fn run_path(&self, id: &str, suffix: &str) -> Result<PathBuf> {
         uuid::Uuid::parse_str(id).map_err(|_| "실행 ID가 올바르지 않습니다.")?;
         crate::security::require(
-            ["ticket", "claim", "result"].contains(&suffix),
+            ["ticket", "claim", "result", "output"].contains(&suffix),
             "실행 데이터 종류가 올바르지 않습니다.",
         )?;
         Ok(self.root.join("runs").join(format!("{id}.{suffix}")))
@@ -109,7 +109,7 @@ impl StorageRepository {
         }
     }
     pub fn remove_run(&self, id: &str) {
-        for suffix in ["ticket", "claim", "result"] {
+        for suffix in ["ticket", "claim", "result", "output"] {
             self.remove_run_file(id, suffix);
         }
     }

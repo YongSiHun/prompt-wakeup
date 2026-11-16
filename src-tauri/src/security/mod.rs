@@ -23,7 +23,6 @@ impl SecurityValidator {
         validate_content(input)?;
         validate_directory(input)?;
         crate::ai_cli::validate_identity(input.cli, &input.cli_path)?;
-        crate::terminal::validate(&input.terminal)?;
         require(
             !future || input.scheduled_at > Utc::now(),
             "미래 실행 시각을 입력하세요.",

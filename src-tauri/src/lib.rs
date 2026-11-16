@@ -17,6 +17,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             commands::snapshot,
+            commands::execution_output,
             commands::save_schedule,
             commands::schedule_action,
             commands::save_settings,

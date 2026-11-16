@@ -79,10 +79,22 @@ pub fn run_job(id: &str) -> Result<()> {
 fn run_job_at(repository: &StorageRepository, id: &str) -> Result<()> {
     let ticket = read_ticket(repository, id)?;
     claim(repository, id)?;
-    let result = execution_result(id, execute(&ticket.schedule));
+    let output = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .open(repository.run_path(id, "output")?)
+        .map_err(err)?;
+    let result = execution_result(id, execute(&ticket.schedule, &output));
+    writeln!(
+        &output,
+        "\nPromptWakeup: 종료 코드 {:?} {}",
+        result.exit_code,
+        result.error.as_deref().unwrap_or("정상 종료")
+    )
+    .map_err(err)?;
+    output.sync_all().map_err(err)?;
     atomic(&repository.run_path(id, "result")?, &result)?;
     repository.remove_run_file(id, "ticket");
-    show_result(&result, ticket.schedule.keep_open);
     Ok(())
 }
 fn execution_result(id: &str, outcome: Result<Option<i32>>) -> RunResult {
@@ -102,32 +114,22 @@ fn execution_result(id: &str, outcome: Result<Option<i32>>) -> RunResult {
     }
 }
 fn cli_error(code: Option<i32>) -> Option<String> {
-    (code != Some(0)).then(|| "CLI가 실패했습니다. 외부 터미널에서 인증, 사용량 제한, 네트워크 및 권한 승인 정책을 확인하세요. 자동 재시도하지 않습니다.".into())
+    (code != Some(0)).then(|| "CLI가 실패했습니다. 앱 내 터미널에서 인증, 사용량 제한, 네트워크 및 권한 승인 정책을 확인하세요. 자동 재시도하지 않습니다.".into())
 }
-fn show_result(result: &RunResult, keep_open: bool) {
-    println!(
-        "\nPromptWakeup: 종료 코드 {:?} {}",
-        result.exit_code,
-        result.error.as_deref().unwrap_or("정상 종료")
-    );
-    if keep_open {
-        wait_for_enter();
-    }
-}
-fn wait_for_enter() {
-    println!("창을 닫으려면 Enter를 누르세요.");
-    let mut line = String::new();
-    let _ = std::io::stdin().read_line(&mut line);
-}
-fn execute(input: &ScheduleInput) -> Result<Option<i32>> {
+fn execute(input: &ScheduleInput, output: &fs::File) -> Result<Option<i32>> {
     SecurityValidator::input(input, false)?;
     let plan = crate::ai_cli::adapter(input.cli).build_launch_plan(input);
     let mut command = crate::ai_cli::command(&plan.executable, &plan.arguments)?;
     command
         .current_dir(&plan.working_directory)
         .stdin(Stdio::piped())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
+        .stdout(Stdio::from(output.try_clone().map_err(err)?))
+        .stderr(Stdio::from(output.try_clone().map_err(err)?));
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(0x08000000);
+    }
     let mut child = command.spawn().map_err(err)?;
     let mut stdin = child.stdin.take().ok_or("CLI stdin 없음")?;
     std::thread::scope(|scope| {

@@ -2,12 +2,11 @@ import { useCallback, useState } from "react";
 import { AppShell, isPage, type Page } from "./components/app_shell";
 import { useBackend } from "./hooks/use_backend";
 import { useAppStore } from "./stores/app_store";
-import { SchedulePage, StatusPage } from "./features/schedules/schedule_page";
+import { SchedulePage } from "./features/schedules/schedule_page";
 import { ExecutionList } from "./features/executions/execution_list";
 import { SettingsPanel } from "./features/settings/settings_panel";
 const screens = {
   schedules: SchedulePage,
-  status: StatusPage,
   executions: ExecutionList,
   settings: SettingsPanel,
 };
