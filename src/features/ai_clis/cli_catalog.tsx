@@ -12,6 +12,9 @@ export function CliCatalog({
   onDetect: () => void;
 }) {
   const [editing, setEditing] = useState<CliInfo | "new" | null>(null);
+  const detected = clis.filter(
+    (cli) => cli.available && cli.executable_path.trim() !== "",
+  );
   return (
     <section className="settings-section">
       <div className="section-heading">
@@ -32,7 +35,12 @@ export function CliCatalog({
       <p className="hint">
         사용할 CLI 이름과 실행 파일 경로를 직접 설정할 수 있습니다.
       </p>
-      {clis.map((cli) => (
+      {detected.length === 0 && (
+        <p className="hint">
+          탐지된 CLI가 없습니다. 재탐색하거나 직접 추가하세요.
+        </p>
+      )}
+      {detected.map((cli) => (
         <CliRow key={cli.kind} cli={cli} busy={busy} onEdit={setEditing} />
       ))}
       {editing && (
@@ -58,14 +66,10 @@ function CliRow({
     <article className="detect">
       <div className="card-title">
         <h3>{cli.kind}</h3>
-        <span className={"badge " + (cli.available ? "completed" : "failed")}>
-          {cli.available ? "사용 가능" : "확인 필요"}
-        </span>
+        <span className="badge completed">사용 가능</span>
       </div>
-      <p className="hint">
-        {cli.version ?? cli.validation_error ?? "탐지되지 않음"}
-      </p>
-      <code>{cli.executable_path || "설정된 경로 없음"}</code>
+      {cli.version && <p className="hint">{cli.version}</p>}
+      <code>{cli.executable_path}</code>
       <div className="actions">
         <button disabled={busy} onClick={() => onEdit(cli)}>
           수정

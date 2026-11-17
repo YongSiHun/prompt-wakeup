@@ -6,7 +6,6 @@ use std::collections::{HashMap, HashSet};
 #[derive(Default)]
 pub struct TickOutcome {
     pub due: Vec<String>,
-    pub notifications: Vec<String>,
     pub changed: bool,
 }
 #[derive(Default)]
@@ -84,7 +83,6 @@ impl PollPlan {
     pub fn outcome(&self) -> TickOutcome {
         TickOutcome {
             due: self.due.clone(),
-            notifications: self.executions.iter().map(notification).collect(),
             changed: self.changed(),
         }
     }
@@ -115,15 +113,6 @@ fn replace_execution(execution: &mut ExecutionRecord, updates: &HashMap<&str, &E
         *execution = (**update).clone();
     }
 }
-fn notification(execution: &ExecutionRecord) -> String {
-    let result = if execution.status == ExecutionStatus::Completed {
-        "완료"
-    } else {
-        "실패 또는 결과 확인 불가"
-    };
-    format!("{}: {result}", execution.name)
-}
-
 pub fn recover(state: &mut Snapshot, now: DateTime<Utc>) {
     let running: HashSet<_> = state
         .executions

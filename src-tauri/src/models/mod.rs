@@ -146,7 +146,6 @@ pub struct Settings {
     pub default_directory: String,
     pub theme: String,
     pub keep_open: bool,
-    pub notifications: bool,
     pub retention_days: u32,
 }
 impl Default for Settings {
@@ -162,7 +161,6 @@ impl Default for Settings {
                 .into(),
             theme: "system".into(),
             keep_open: false,
-            notifications: true,
             retention_days: 90,
         }
     }

@@ -388,17 +388,6 @@ textarea {
   white-space: nowrap;
   margin-top: 7px;
 }
-.check {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-}
-.check input {
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  accent-color: var(--accent);
-}
 footer {
   display: flex;
   justify-content: flex-end;

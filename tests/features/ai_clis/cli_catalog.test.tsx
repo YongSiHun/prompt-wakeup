@@ -39,3 +39,36 @@ it("재탐색 버튼이 탐색을 요청한다", () => {
   fireEvent.click(screen.getByRole("button", { name: "CLI 재탐색" }));
   expect(detect).toHaveBeenCalledOnce();
 });
+
+it("탐지된 CLI만 표시하고 기본 항목과 확인 실패 항목은 숨긴다", () => {
+  render(
+    <CliCatalog
+      clis={[
+        makeCli(),
+        makeCli({ kind: "claude", executable_path: "", available: false }),
+        makeCli({
+          kind: "gemini",
+          executable_path: "C:/missing/gemini.exe",
+          available: false,
+          validation_error: "실행 파일 없음",
+        }),
+      ]}
+      busy={false}
+      onDetect={() => {}}
+    />,
+  );
+  expect(screen.getByRole("heading", { name: "codex" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "claude" })).toBeNull();
+  expect(screen.queryByRole("heading", { name: "gemini" })).toBeNull();
+});
+it("설치된 CLI가 없으면 기본 CLI 목록 대신 빈 상태를 표시한다", () => {
+  render(
+    <CliCatalog
+      clis={[makeCli({ available: false, executable_path: "" })]}
+      busy={false}
+      onDetect={() => {}}
+    />,
+  );
+  expect(screen.getByText(/탐지된 CLI가 없습니다/)).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "codex" })).toBeNull();
+});

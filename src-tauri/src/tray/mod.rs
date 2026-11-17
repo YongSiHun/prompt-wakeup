@@ -35,7 +35,7 @@ fn menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
     let entries = [
         ("open", "PromptWakeup 열기"),
         ("schedules", "예약 작업 보기 / 다음 예약 확인"),
-        ("executions", "터미널 / 실행 결과 보기"),
+        ("executions", "실행이력 보기"),
         ("quit", "완전히 종료"),
     ];
     let items = entries

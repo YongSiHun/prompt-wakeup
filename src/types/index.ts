@@ -63,7 +63,6 @@ export interface Settings {
   default_directory: string;
   theme: "system" | "light" | "dark";
   keep_open: boolean;
-  notifications: boolean;
   retention_days: number;
 }
 export interface Snapshot {

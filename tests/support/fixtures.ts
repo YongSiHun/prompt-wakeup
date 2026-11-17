@@ -13,7 +13,6 @@ export function makeSettings(overrides: Partial<Settings> = {}): Settings {
     default_directory: "C:/작업 폴더",
     theme: "light",
     keep_open: false,
-    notifications: false,
     retention_days: 90,
     custom_cli_paths: {},
     custom_terminals: [],

@@ -1,5 +1,4 @@
 import { DirectoryField } from "../../components/directory_field";
-import { NotificationPanel } from "./notification_panel";
 import { CliCatalog } from "../ai_clis/cli_catalog";
 import { useState } from "react";
 import { useAppStore } from "../../stores/app_store";
@@ -69,14 +68,6 @@ export function SettingsPanel() {
             />
           </label>
         </div>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={settings.notifications}
-            onChange={(event) => update("notifications", event.target.checked)}
-          />
-          시스템 알림 사용
-        </label>
         <button
           className="primary"
           disabled={busy}
@@ -90,7 +81,6 @@ export function SettingsPanel() {
         busy={busy}
         onDetect={() => void store.detect()}
       />
-      <NotificationPanel enabled={settings.notifications} />
     </section>
   );
 }

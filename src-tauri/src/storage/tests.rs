@@ -38,3 +38,13 @@ fn path_traversal_run_id_rejected() {
         .run_path(&uuid::Uuid::new_v4().to_string(), "../settings")
         .is_err());
 }
+
+#[test]
+fn legacy_notification_setting_is_ignored() {
+    let settings: crate::models::Settings =
+        serde_json::from_str(r#"{"notifications":true}"#).unwrap();
+    assert!(serde_json::to_value(settings)
+        .unwrap()
+        .get("notifications")
+        .is_none());
+}

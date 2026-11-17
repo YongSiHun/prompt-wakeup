@@ -13,7 +13,6 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(runtime::show_existing))
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             commands::app::snapshot,
             commands::executions::execution_output,
@@ -26,7 +25,6 @@ pub fn run() {
             commands::settings::save_settings,
             commands::clis::detect_clis,
             commands::clis::manual_cli,
-            commands::settings::notification_permission,
         ])
         .setup(setup)
         .on_window_event(runtime::window_event)

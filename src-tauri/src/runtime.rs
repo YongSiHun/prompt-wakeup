@@ -9,7 +9,6 @@ use std::{
     time::{Duration, Instant},
 };
 use tauri::{Emitter, Manager};
-use tauri_plugin_notification::NotificationExt;
 
 type ManagerState = Arc<SchedulerManager>;
 struct ClockSample {
@@ -63,7 +62,6 @@ fn process_outcome(app: &tauri::AppHandle, manager: &ManagerState, outcome: Tick
     if outcome.changed {
         changed(app);
     }
-    notify(app, manager, outcome.notifications);
     for id in outcome.due {
         dispatch(app.clone(), manager.clone(), id);
     }
@@ -75,36 +73,13 @@ fn dispatch(app: tauri::AppHandle, manager: ManagerState, id: String) {
             .await
             .map_err(err)
             .and_then(|result| result);
-        report_launch(&app, &manager, result);
+        report_launch(&app, result);
     });
 }
-fn report_launch(app: &tauri::AppHandle, manager: &ManagerState, result: Result<()>) {
+fn report_launch(app: &tauri::AppHandle, result: Result<()>) {
     changed(app);
     if let Err(error) = result {
-        report_error(app, error.clone());
-        notify(app, manager, vec![error]);
-    }
-}
-fn notify(app: &tauri::AppHandle, manager: &ManagerState, messages: Vec<String>) {
-    if !manager.notifications_enabled() {
-        return;
-    }
-    messages
-        .into_iter()
-        .for_each(|message| notify_one(app, message));
-}
-fn notify_one(app: &tauri::AppHandle, message: String) {
-    let result = app
-        .notification()
-        .builder()
-        .title("PromptWakeup")
-        .body(message)
-        .show();
-    if let Err(error) = result {
-        report_error(
-            app,
-            format!("시스템 알림을 표시하지 못했습니다. OS 알림 설정을 확인하세요: {error}"),
-        );
+        report_error(app, error);
     }
 }
 pub fn changed(app: &tauri::AppHandle) {

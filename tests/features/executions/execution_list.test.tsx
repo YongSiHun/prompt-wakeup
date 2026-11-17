@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import { beforeEach, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import { ExecutionList } from "../../../src/features/executions/execution_list";
@@ -59,6 +65,9 @@ it("완료된 결과만 삭제할 수 있다", async () => {
   fireEvent.click(
     screen.getByRole("button", { name: "완료 작업 실행 결과 삭제" }),
   );
+  expect(useAppStore.getState().perform).not.toHaveBeenCalled();
+  const dialog = screen.getByRole("dialog", { name: "삭제하시겠습니까?" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "삭제" }));
   await waitFor(() =>
     expect(useAppStore.getState().perform).toHaveBeenCalledWith(
       "delete_execution",

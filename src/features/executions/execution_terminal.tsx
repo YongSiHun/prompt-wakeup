@@ -1,3 +1,4 @@
+import { DeleteButton } from "../../components/delete_button";
 import { useEffect, useRef } from "react";
 import { StatusBadge } from "../../components/status_badge";
 import { useAppStore } from "../../stores/app_store";
@@ -30,19 +31,17 @@ export function ExecutionTerminal({ record }: { record: ExecutionRecord }) {
         </div>
         <div className="actions">
           <StatusBadge status={record.status} />
-          <button
-            className="danger"
+          <DeleteButton
+            name={record.name + " 실행 결과"}
+            description="실행 기록과 저장된 출력 파일을 삭제합니다."
             disabled={busy || !record.ended_at}
             title={
               !record.ended_at
                 ? "실행이 끝난 후 삭제할 수 있습니다."
                 : undefined
             }
-            aria-label={record.name + " 실행 결과 삭제"}
-            onClick={() => void perform("delete_execution", { id: record.id })}
-          >
-            삭제
-          </button>
+            onDelete={() => perform("delete_execution", { id: record.id })}
+          />
         </div>
       </header>
       <pre

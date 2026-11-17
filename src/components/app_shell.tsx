@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useAppStore } from "../stores/app_store";
 export const pages = {
   schedules: { label: "예약 작업", title: "다음 작업을 준비하세요" },
-  executions: { label: "터미널 / 실행 결과", title: "터미널과 실행 결과" },
+  executions: { label: "실행이력", title: "실행이력" },
   settings: { label: "설정", title: "나의 실행 환경" },
 };
 export type Page = keyof typeof pages;

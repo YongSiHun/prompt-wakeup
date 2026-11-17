@@ -11,10 +11,12 @@ it("예약·실행 결과·설정 화면을 전환한다", () => {
   expect(
     screen.getByRole("heading", { name: "다음 작업을 준비하세요" }),
   ).toBeTruthy();
-  fireEvent.click(screen.getByRole("button", { name: "터미널 / 실행 결과" }));
+  fireEvent.click(screen.getByRole("button", { name: "실행이력" }));
   expect(
-    screen.getByRole("heading", { name: "터미널과 실행 결과" }),
+    screen.getByRole("heading", { name: "실행이력", level: 1 }),
   ).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "설정" }));
   expect(screen.getByRole("heading", { name: "CLI 탐지" })).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "알림 및 권한" })).toBeNull();
+  expect(screen.queryByLabelText("시스템 알림 사용")).toBeNull();
 });

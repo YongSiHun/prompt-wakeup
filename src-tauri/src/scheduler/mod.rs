@@ -50,9 +50,6 @@ impl SchedulerManager {
     pub fn current_settings(&self) -> Result<Settings> {
         Ok(self.lock()?.settings.clone())
     }
-    pub fn notifications_enabled(&self) -> bool {
-        self.lock().is_ok_and(|state| state.settings.notifications)
-    }
     pub fn is_stopping(&self) -> bool {
         self.stopping.load(Ordering::SeqCst)
     }
