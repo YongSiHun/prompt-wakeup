@@ -141,7 +141,7 @@ impl ExecutionRecord {
 pub struct Settings {
     pub custom_cli_paths: BTreeMap<String, String>,
     pub custom_terminals: Vec<TerminalInfo>,
-    pub default_cli: CliKind,
+    pub default_cli: Option<CliKind>,
     pub default_terminal: String,
     pub default_directory: String,
     pub theme: String,
@@ -153,7 +153,7 @@ impl Default for Settings {
         Self {
             custom_cli_paths: BTreeMap::new(),
             custom_terminals: Vec::new(),
-            default_cli: CliKind::Codex,
+            default_cli: None,
             default_terminal: "embedded".into(),
             default_directory: dirs::home_dir()
                 .unwrap_or_default()

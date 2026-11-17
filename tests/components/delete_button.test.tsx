@@ -11,6 +11,7 @@ import { resetAppStore } from "../support/app_store";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 beforeEach(() => resetAppStore());
 it("취소하면 삭제하지 않는다", () => {
+  vi.spyOn(window, "confirm").mockReturnValue(true);
   const remove = vi.fn().mockResolvedValue(true);
   render(
     <DeleteButton

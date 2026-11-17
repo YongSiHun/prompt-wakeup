@@ -7,12 +7,10 @@ import { formatTime, remaining } from "../../lib/time";
 import type { Schedule } from "../../types";
 type CardProps = {
   schedule: Schedule;
-  onDetail: (schedule: Schedule) => void;
   onEdit: (schedule: Schedule) => void;
 };
 export const ScheduleCard = memo(function ScheduleCard({
   schedule,
-  onDetail,
   onEdit,
 }: CardProps) {
   return (
@@ -32,11 +30,7 @@ export const ScheduleCard = memo(function ScheduleCard({
           <time>{formatTime(schedule.scheduled_at)}</time>
           <ScheduleTime schedule={schedule} />
         </div>
-        <ScheduleActions
-          schedule={schedule}
-          onDetail={onDetail}
-          onEdit={onEdit}
-        />
+        <ScheduleActions schedule={schedule} onEdit={onEdit} />
       </div>
     </article>
   );
@@ -44,16 +38,15 @@ export const ScheduleCard = memo(function ScheduleCard({
 function ScheduleTime({ schedule }: { schedule: Schedule }) {
   if (schedule.status === "pending")
     return <Countdown value={schedule.scheduled_at} />;
-  return <small>{schedule.timezone}</small>;
+  return null;
 }
 function Countdown({ value }: { value: string }) {
   const now = useNow();
   return <small>{remaining(value, now)}</small>;
 }
-function ScheduleActions({ schedule, onDetail, onEdit }: CardProps) {
+function ScheduleActions({ schedule, onEdit }: CardProps) {
   return (
     <div className="actions">
-      <button onClick={() => onDetail(schedule)}>상세</button>
       <PendingActions schedule={schedule} onEdit={onEdit} />
       <IdleActions schedule={schedule} />
     </div>
@@ -72,6 +65,7 @@ function PendingActions({
       <button
         disabled={busy}
         onClick={() =>
+          window.confirm("이 예약 작업을 취소할까요?") &&
           void perform("schedule_action", { id: schedule.id, action: "cancel" })
         }
       >

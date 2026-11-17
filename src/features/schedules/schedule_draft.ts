@@ -10,7 +10,7 @@ import { localInput, utcFromLocal } from "../../lib/time";
 
 export interface ScheduleDraft {
   name: string;
-  cli: CliKind;
+  cli: CliKind | "";
   cliPath: string;
   directory: string;
   prompt: string;
@@ -35,8 +35,8 @@ function existingDraft(schedule: Schedule): ScheduleDraft {
 }
 function defaultDraft(settings: Settings): ScheduleDraft {
   return {
-    name: "",
-    cli: settings.default_cli,
+    name: "새 예약 작업",
+    cli: settings.default_cli ?? "",
     cliPath: "",
     directory: settings.default_directory,
     prompt: "",
@@ -54,6 +54,8 @@ export function buildInput(
   draft: ScheduleDraft,
   clis: CliInfo[],
 ): ScheduleInput {
+  if (!draft.cli) throw new Error("AI CLI를 선택하세요.");
+  const time = normalizeTime(draft.time);
   return {
     name: draft.name,
     cli: draft.cli,
@@ -61,18 +63,15 @@ export function buildInput(
     terminal: embeddedTerminal,
     working_directory: draft.directory,
     prompt: draft.prompt,
-    scheduled_at: utcFromLocal(draft.time),
+    scheduled_at: utcFromLocal(time),
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    local_time: draft.time,
+    local_time: time,
     keep_open: false,
   };
 }
-export function cliPath(clis: CliInfo[], kind: CliKind) {
-  return (
-    clis.find((cli) => cli.kind === kind)?.executable_path ||
-    "AI CLI 실행 파일을 선택하세요."
-  );
-}
 export function normalizeTime(value: string) {
-  return value.length === 16 ? value + ":00" : value;
+  const [date, time = ""] = value.split("T");
+  const parts = time.split(":");
+  if (parts.length === 2) parts.push("00");
+  return date + "T" + parts.map((part) => part.padStart(2, "0")).join(":");
 }

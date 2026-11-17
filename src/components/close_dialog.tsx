@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Modal } from "./modal";
+import { Modal, ModalCancelButton } from "./modal";
 import { useAppStore } from "../stores/app_store";
 
 export function CloseDialog({ onClose }: { onClose: () => void }) {
@@ -19,6 +19,7 @@ export function CloseDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       title="앱 닫기"
+      dismissDisabled={busy}
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -28,9 +29,7 @@ export function CloseDialog({ onClose }: { onClose: () => void }) {
         때까지 예약 작업이 실행되지 않습니다.
       </p>
       <footer>
-        <button disabled={busy} onClick={onClose}>
-          취소
-        </button>
+        <ModalCancelButton disabled={busy}>취소</ModalCancelButton>
         <button
           className="danger"
           disabled={busy}

@@ -8,13 +8,12 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
 beforeEach(() => resetAppStore());
 it("예약·실행 결과·설정 화면을 전환한다", () => {
   render(<App />);
-  expect(
-    screen.getByRole("heading", { name: "다음 작업을 준비하세요" }),
-  ).toBeTruthy();
+  expect(screen.getByRole("heading", { name: "예약 작업 0" })).toBeTruthy();
+  expect(screen.queryByText("PromptWakeup")).toBeNull();
+  expect(screen.queryByText("YOUR PROMPTS, ON SCHEDULE")).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "실행이력" }));
-  expect(
-    screen.getByRole("heading", { name: "실행이력", level: 1 }),
-  ).toBeTruthy();
+  expect(screen.getByText("아직 실행 이력이 없습니다.")).toBeTruthy();
+  expect(screen.queryByRole("heading", { name: "실행이력" })).toBeNull();
   fireEvent.click(screen.getByRole("button", { name: "설정" }));
   expect(screen.getByRole("heading", { name: "CLI 탐지" })).toBeTruthy();
   expect(screen.queryByRole("heading", { name: "알림 및 권한" })).toBeNull();

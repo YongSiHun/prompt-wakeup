@@ -69,38 +69,16 @@ textarea:focus-visible {
   min-height: 100vh;
 }
 aside {
-  width: 238px;
+  width: 164px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
-  padding: 34px 20px;
+  padding: 24px 8px;
   background: var(--panel);
   display: flex;
   flex-direction: column;
   position: sticky;
   top: 0;
   height: 100vh;
-}
-.brand {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-  font-size: 18px;
-  letter-spacing: -0.6px;
-}
-.logo {
-  background: var(--accent);
-  color: white;
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border-radius: 10px;
-  font-size: 28px;
-}
-.slogan {
-  font-size: 10px;
-  color: var(--muted);
-  margin: 13px 0 40px;
 }
 nav {
   display: flex;
@@ -111,51 +89,18 @@ nav button {
   text-align: left;
   border: 0;
   color: var(--muted);
-  padding: 13px 16px;
+  padding: 13px 10px;
 }
 nav button.selected {
   color: var(--accent);
   background: var(--soft);
   font-weight: 600;
 }
-.aside-note {
-  margin-top: auto;
-  font-size: 11px;
-  color: var(--muted);
-  line-height: 2;
-}
-.dot {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #30ab7e;
-  margin-right: 7px;
-}
 main {
   width: 100%;
   max-width: 1400px;
   padding: 38px 42px;
   min-width: 0;
-}
-.top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 32px;
-}
-.eyebrow {
-  font-size: 10px;
-  letter-spacing: 1.8px;
-  color: var(--accent);
-  font-weight: 700;
-}
-h1 {
-  font-size: 27px;
-  letter-spacing: -1px;
-  font-weight: 700;
-  margin: 9px 0 0;
 }
 h2 {
   font-size: 18px;
@@ -166,11 +111,6 @@ h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-}
-.live {
-  font-size: 11px;
-  color: var(--muted);
-  white-space: nowrap;
 }
 .stats {
   display: grid;
@@ -345,12 +285,6 @@ small {
 .modal::backdrop {
   background: #10152b80;
 }
-.modal header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 22px;
-}
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -482,8 +416,8 @@ html[data-theme="dark"] {
 }
 @media (max-width: 950px) {
   aside {
-    width: 195px;
-    padding: 30px 15px;
+    width: 144px;
+    padding: 24px 8px;
   }
   main {
     padding: 30px 24px;
@@ -495,29 +429,13 @@ html[data-theme="dark"] {
     align-items: flex-start;
     flex-direction: column;
   }
-  .brand {
-    font-size: 15px;
-  }
 }
 @media (max-width: 700px) {
   aside {
-    width: 150px;
-  }
-  .brand {
-    font-size: 12px;
-  }
-  .logo {
-    display: none;
-  }
-  .slogan {
-    font-size: 9px;
+    width: 120px;
   }
   main {
     padding: 25px 18px;
-  }
-  .top {
-    align-items: flex-start;
-    flex-direction: column;
   }
   .grid,
   .stats {
@@ -532,12 +450,10 @@ html[data-theme="dark"] {
   .stats section {
     padding: 16px;
   }
-  h1 {
-    font-size: 23px;
-  }
 }
 
 .executable-path {
+  margin-bottom: 17px;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -614,4 +530,37 @@ html[data-theme="dark"] {
 .execution-file .hint {
   width: 100%;
   margin: 0;
+}
+
+.nav-count {
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.section-heading h2 small {
+  display: inline;
+}
+.schedule-time {
+  border: 0;
+  padding: 0;
+  margin: 0 0 17px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.time-fields {
+  display: grid;
+  grid-template-columns: minmax(150px, 2fr) repeat(3, minmax(50px, 1fr));
+  gap: 12px;
+  margin-top: 7px;
+}
+.time-fields label {
+  margin-bottom: 0;
+}
+@media (max-width: 500px) {
+  .time-fields {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .time-fields label:first-child {
+    grid-column: 1 / -1;
+  }
 }

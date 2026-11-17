@@ -1,4 +1,3 @@
-import { Modal } from "../../components/modal";
 import { useCallback, useMemo, useState } from "react";
 import { useAppStore } from "../../stores/app_store";
 import { formatTime } from "../../lib/time";
@@ -16,24 +15,17 @@ export function SchedulePage() {
     [schedules],
   );
   const [editor, setEditor] = useState<Editor>(null);
-  const [detail, setDetail] = useState<Schedule | null>(null);
   const create = useCallback(() => setEditor("new"), []);
   const edit = useCallback((schedule: Schedule) => setEditor(schedule), []);
   return (
     <>
       <ScheduleSummary schedules={pending} />
-      <ScheduleList
-        schedules={pending}
-        onCreate={create}
-        onEdit={edit}
-        onDetail={setDetail}
-      />
+      <ScheduleList schedules={pending} onCreate={create} onEdit={edit} />
       <p className="hint">
         사용량 제한 해제 시각은 직접 입력합니다. 예약 실패 시 자동 재시도하지
         않습니다.
       </p>
       <ScheduleEditor editor={editor} onClose={() => setEditor(null)} />
-      <ScheduleDetail schedule={detail} onClose={() => setDetail(null)} />
     </>
   );
 }
@@ -61,9 +53,8 @@ type ListProps = {
   schedules: Schedule[];
   onCreate: () => void;
   onEdit: (schedule: Schedule) => void;
-  onDetail: (schedule: Schedule) => void;
 };
-function ScheduleList({ schedules, onCreate, onEdit, onDetail }: ListProps) {
+function ScheduleList({ schedules, onCreate, onEdit }: ListProps) {
   return (
     <>
       <div className="section-heading">
@@ -83,7 +74,6 @@ function ScheduleList({ schedules, onCreate, onEdit, onDetail }: ListProps) {
               key={schedule.id}
               schedule={schedule}
               onEdit={onEdit}
-              onDetail={onDetail}
             />
           ))}
         </div>
@@ -114,24 +104,5 @@ function ScheduleEditor({
       schedule={editor === "new" ? undefined : editor}
       onClose={onClose}
     />
-  );
-}
-function ScheduleDetail({
-  schedule,
-  onClose,
-}: {
-  schedule: Schedule | null;
-  onClose: () => void;
-}) {
-  if (!schedule) return null;
-  return (
-    <Modal title={schedule.name} onClose={onClose}>
-      <p>{schedule.cli}</p>
-      <p>{schedule.working_directory}</p>
-      <p>
-        {formatTime(schedule.scheduled_at)} · {schedule.timezone}
-      </p>
-      <pre>{schedule.prompt}</pre>
-    </Modal>
   );
 }

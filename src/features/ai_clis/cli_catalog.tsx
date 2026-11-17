@@ -1,3 +1,4 @@
+import { availableClis } from "./cli_service";
 import { CliEditor } from "./cli_editor";
 import { useState } from "react";
 import type { CliInfo } from "../../types";
@@ -12,9 +13,7 @@ export function CliCatalog({
   onDetect: () => void;
 }) {
   const [editing, setEditing] = useState<CliInfo | "new" | null>(null);
-  const detected = clis.filter(
-    (cli) => cli.available && cli.executable_path.trim() !== "",
-  );
+  const detected = availableClis(clis);
   return (
     <section className="settings-section">
       <div className="section-heading">

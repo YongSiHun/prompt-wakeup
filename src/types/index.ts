@@ -58,7 +58,7 @@ export interface ExecutionRecord {
 export interface Settings {
   custom_cli_paths: Record<string, string>;
   custom_terminals: TerminalInfo[];
-  default_cli: CliKind;
+  default_cli: CliKind | null;
   default_terminal: string;
   default_directory: string;
   theme: "system" | "light" | "dark";

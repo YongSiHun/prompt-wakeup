@@ -33,9 +33,11 @@ it("대기 작업만 표시하고 실행 결과와 실행 환경은 표시하지
   expect(screen.queryByRole("heading", { name: "실행이력" })).toBeNull();
 });
 it("취소 액션을 선택한 예약에 전달한다", () => {
+  const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
   useAppStore.setState({ data: makeSnapshot({ schedules: [makeSchedule()] }) });
   render(<SchedulePage />);
   fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  expect(confirm).toHaveBeenCalledOnce();
   expect(useAppStore.getState().perform).toHaveBeenCalledWith(
     "schedule_action",
     { id: "job-1", action: "cancel" },
@@ -63,4 +65,13 @@ it("예약 삭제는 확인 후에만 실행한다", () => {
     "schedule_action",
     { id: "job-1", action: "delete" },
   );
+});
+
+it("예약 취소 확인을 거절하면 작업을 유지한다", () => {
+  vi.spyOn(window, "confirm").mockReturnValue(false);
+  useAppStore.setState({ data: makeSnapshot({ schedules: [makeSchedule()] }) });
+  render(<SchedulePage />);
+  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  expect(useAppStore.getState().perform).not.toHaveBeenCalled();
+  expect(screen.queryByRole("button", { name: "상세" })).toBeNull();
 });

@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { Modal } from "../../components/modal";
+import { Modal, ModalCancelButton } from "../../components/modal";
 import { useAppStore } from "../../stores/app_store";
 import { cliKinds, type CliInfo, type CliKind } from "../../types";
 import { registerCli } from "./cli_service";
@@ -8,11 +8,13 @@ import { registerCli } from "./cli_service";
 export function CliEditor({
   cli,
   onClose,
+  onSaved,
 }: {
   cli?: CliInfo;
   onClose: () => void;
+  onSaved?: (cli: CliInfo) => void;
 }) {
-  const [kind, setKind] = useState<CliKind>(cli?.kind ?? "codex");
+  const [kind, setKind] = useState<CliKind | "">(cli?.kind ?? "");
   const [path, setPath] = useState(cli?.executable_path ?? "");
   const [busy, setBusy] = useState(false);
   const store = useAppStore.getState();
@@ -33,7 +35,9 @@ export function CliEditor({
     setBusy(true);
     store.setError(null);
     try {
-      await registerCli(kind, path);
+      if (!kind) throw new Error("CLI 이름을 선택하세요.");
+      const saved = await registerCli(kind, path);
+      onSaved?.(saved);
       onClose();
     } catch (error) {
       store.setError(String(error));
@@ -44,6 +48,7 @@ export function CliEditor({
   return (
     <Modal
       title={cli ? "CLI 수정" : "CLI 추가"}
+      dismissDisabled={busy}
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -52,10 +57,12 @@ export function CliEditor({
         <label>
           CLI 이름
           <select
+            required
             value={kind}
             disabled={busy || !!cli}
             onChange={(event) => setKind(event.target.value as CliKind)}
           >
+            <option value="">CLI를 선택하세요</option>
             {cliKinds.map((name) => (
               <option key={name}>{name}</option>
             ))}
@@ -81,9 +88,7 @@ export function CliEditor({
           있으면 경로를 갱신합니다.
         </p>
         <footer>
-          <button type="button" disabled={busy} onClick={onClose}>
-            취소
-          </button>
+          <ModalCancelButton disabled={busy}>취소</ModalCancelButton>
           <button className="primary" disabled={busy}>
             {busy ? "확인 중…" : "저장"}
           </button>

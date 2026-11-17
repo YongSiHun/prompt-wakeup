@@ -48,3 +48,17 @@ fn legacy_notification_setting_is_ignored() {
         .get("notifications")
         .is_none());
 }
+
+#[test]
+fn default_cli_is_optional_and_legacy_selection_is_preserved() {
+    use crate::models::{CliKind, Settings};
+    assert_eq!(Settings::default().default_cli, None);
+    for json in [r#"{}"#, r#"{"default_cli":null}"#] {
+        let settings: Settings = serde_json::from_str(json).unwrap();
+        assert_eq!(settings.default_cli, None);
+        let saved = serde_json::to_string(&settings).unwrap();
+        assert_eq!(serde_json::from_str::<Settings>(&saved).unwrap(), settings);
+    }
+    let legacy: Settings = serde_json::from_str(r#"{"default_cli":"claude"}"#).unwrap();
+    assert_eq!(legacy.default_cli, Some(CliKind::Claude));
+}

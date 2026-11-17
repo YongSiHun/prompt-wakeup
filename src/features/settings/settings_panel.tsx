@@ -2,7 +2,9 @@ import { DirectoryField } from "../../components/directory_field";
 import { CliCatalog } from "../ai_clis/cli_catalog";
 import { useState } from "react";
 import { useAppStore } from "../../stores/app_store";
-import { cliKinds, type Settings, type CliKind } from "../../types";
+import { CliSelect } from "../ai_clis/cli_select";
+import { availableClis } from "../ai_clis/cli_service";
+import type { Settings } from "../../types";
 export function SettingsPanel() {
   const store = useAppStore.getState();
   const clis = useAppStore((state) => state.clis);
@@ -10,6 +12,11 @@ export function SettingsPanel() {
   const [settings, setSettings] = useState<Settings>({
     ...store.data!.settings,
   });
+  const defaultCli = availableClis(clis).some(
+    (cli) => cli.kind === settings.default_cli,
+  )
+    ? settings.default_cli
+    : null;
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setSettings((current) => ({ ...current, [key]: value }));
   return (
@@ -21,16 +28,12 @@ export function SettingsPanel() {
         <div className="grid">
           <label>
             기본 AI CLI
-            <select
-              value={settings.default_cli}
-              onChange={(event) =>
-                update("default_cli", event.target.value as CliKind)
-              }
-            >
-              {cliKinds.map((kind) => (
-                <option key={kind}>{kind}</option>
-              ))}
-            </select>
+            <CliSelect
+              clis={clis}
+              value={defaultCli ?? ""}
+              onChange={(cli) => update("default_cli", cli || null)}
+              emptyLabel="선택 안 함"
+            />
           </label>
           <p className="hint">
             모든 작업은 앱 내 터미널에서 실행되며 출력이 자동 저장됩니다.
@@ -71,7 +74,11 @@ export function SettingsPanel() {
         <button
           className="primary"
           disabled={busy}
-          onClick={() => void store.perform("save_settings", { settings })}
+          onClick={() =>
+            void store.perform("save_settings", {
+              settings: { ...settings, default_cli: defaultCli },
+            })
+          }
         >
           설정 저장
         </button>

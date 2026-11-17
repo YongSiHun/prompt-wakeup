@@ -20,6 +20,7 @@ it.each([
   expect(invoke).toHaveBeenCalledWith("close_app", { action });
 });
 it("취소하면 앱을 닫지 않는다", () => {
+  vi.spyOn(window, "confirm").mockReturnValue(true);
   const onClose = vi.fn();
   render(<CloseDialog onClose={onClose} />);
   fireEvent.click(screen.getByRole("button", { name: "취소" }));

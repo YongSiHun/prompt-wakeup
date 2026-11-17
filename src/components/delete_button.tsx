@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal } from "./modal";
+import { Modal, ModalCancelButton } from "./modal";
 import { useAppStore } from "../stores/app_store";
 
 export function DeleteButton({
@@ -42,13 +42,17 @@ export function DeleteButton({
         삭제
       </button>
       {confirming && (
-        <Modal title="삭제하시겠습니까?" onClose={close}>
+        <Modal
+          title="삭제하시겠습니까?"
+          onClose={close}
+          dismissDisabled={deleting}
+        >
           <p>{name}</p>
           <p className="hint">{description}</p>
           <footer>
-            <button disabled={deleting} onClick={close} autoFocus>
+            <ModalCancelButton disabled={deleting} autoFocus>
               취소
-            </button>
+            </ModalCancelButton>
             <button
               className="danger"
               disabled={disabled || deleting}
