@@ -215,3 +215,6 @@ fn restrict(path: &Path) -> Result<()> {
         "데이터 폴더 접근 권한 제한에 실패했습니다.",
     )
 }
+
+#[cfg(test)]
+mod tests;

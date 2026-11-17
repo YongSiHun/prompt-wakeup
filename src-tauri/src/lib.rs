@@ -6,7 +6,6 @@ mod runtime;
 pub mod scheduler;
 pub mod security;
 pub mod storage;
-pub mod terminal;
 pub mod tray;
 use tauri::Manager;
 
@@ -16,20 +15,18 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
-            commands::snapshot,
-            commands::execution_output,
-            commands::execution_output_path,
-            commands::open_execution_output,
-            commands::delete_execution,
-            commands::close_app,
-            commands::save_schedule,
-            commands::schedule_action,
-            commands::save_settings,
-            commands::detect_clis,
-            commands::detect_terminals,
-            commands::manual_terminal,
-            commands::manual_cli,
-            commands::notification_permission,
+            commands::app::snapshot,
+            commands::executions::execution_output,
+            commands::executions::execution_output_path,
+            commands::executions::open_execution_output,
+            commands::executions::delete_execution,
+            commands::app::close_app,
+            commands::schedules::save_schedule,
+            commands::schedules::schedule_action,
+            commands::settings::save_settings,
+            commands::clis::detect_clis,
+            commands::clis::manual_cli,
+            commands::settings::notification_permission,
         ])
         .setup(setup)
         .on_window_event(runtime::window_event)
@@ -56,3 +53,6 @@ fn startup_error(app: &tauri::App, message: String) -> Box<dyn std::error::Error
         .blocking_show();
     Box::new(std::io::Error::other(message))
 }
+
+#[cfg(test)]
+mod test_support;

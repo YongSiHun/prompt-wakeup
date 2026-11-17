@@ -1,10 +1,6 @@
-import { renderHook, cleanup } from "@testing-library/react";
-import { afterEach, expect, it, vi } from "vitest";
-import { useNow } from "../src/hooks/use_now";
-afterEach(() => {
-  cleanup();
-  vi.useRealTimers();
-});
+import { renderHook } from "@testing-library/react";
+import { expect, it, vi } from "vitest";
+import { useNow } from "../../src/hooks/use_now";
 it("여러 카운트다운이 하나의 타이머를 공유하고 마지막 구독 해제 시 정리한다", () => {
   vi.useFakeTimers();
   const first = renderHook(useNow);

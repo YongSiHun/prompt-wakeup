@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { localInput, utcFromLocal, remaining } from "../src/lib/time";
+import { describe, it, expect, vi } from "vitest";
+import { localInput, utcFromLocal, remaining } from "../../src/lib/time";
 describe("예약 시각", () => {
-  afterEach(() => vi.useRealTimers());
   it("초 단위 로컬 입력을 UTC로 변환한다", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-01"));

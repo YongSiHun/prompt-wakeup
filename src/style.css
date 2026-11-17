@@ -420,19 +420,8 @@ footer {
 .error button {
   margin-left: 10px;
 }
-.notice {
-  background: var(--soft);
-  color: var(--muted);
-  padding: 18px;
-  border-radius: 9px;
-  font-size: 12px;
-  line-height: 1.9;
-  margin-bottom: 22px;
-}
 .settings {
   max-width: 750px;
-}
-.settings {
   display: grid;
   gap: var(--space);
 }
@@ -469,27 +458,6 @@ footer {
   font-size: 10px;
   color: var(--muted);
   overflow-wrap: anywhere;
-}
-.table-wrap {
-  overflow: auto;
-}
-table {
-  border-collapse: collapse;
-  width: 100%;
-  background: var(--panel);
-  font-size: 12px;
-}
-td,
-th {
-  padding: 15px;
-  text-align: left;
-  border-bottom: 1px solid var(--border);
-  max-width: 300px;
-  overflow-wrap: anywhere;
-}
-th {
-  color: var(--muted);
-  font-size: 11px;
 }
 pre {
   white-space: pre-wrap;

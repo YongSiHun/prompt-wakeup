@@ -1,21 +1,18 @@
 import { create } from "zustand";
 import { invoke } from "@tauri-apps/api/core";
-import type { Snapshot, CliInfo, TerminalInfo } from "../types";
+import type { Snapshot, CliInfo } from "../types";
 interface Store {
   data: Snapshot | null;
   clis: CliInfo[];
-  terminals: TerminalInfo[];
   error: string | null;
   busy: boolean;
   refresh: () => Promise<void>;
   detect: () => Promise<void>;
-  rescanClis: () => Promise<void>;
   perform: (
     command: string,
     args?: Record<string, unknown>,
   ) => Promise<boolean>;
   setError: (error: string | null) => void;
-  addTerminal: (terminal: TerminalInfo) => void;
   addCli: (cli: CliInfo) => void;
 }
 let pendingOperations = 0;
@@ -44,48 +41,25 @@ function reportError(error: unknown) {
   useAppStore.setState({ error: String(error) });
 }
 // Keep manual selections made while a slower automatic scan was in flight.
-function mergeDetected<T>(
-  detected: T[],
-  previous: T[],
-  current: T[],
-  key: (item: T) => string,
-): T[] {
-  const before = new Map(previous.map((item) => [key(item), item]));
-  const selected = current.filter((item) => before.get(key(item)) !== item);
+function mergeDetected(
+  detected: CliInfo[],
+  previous: CliInfo[],
+  current: CliInfo[],
+): CliInfo[] {
+  const before = new Map(previous.map((item) => [item.kind, item]));
+  const selected = current.filter((item) => before.get(item.kind) !== item);
   return [
     ...new Map(
-      [...detected, ...selected].map((item) => [key(item), item]),
+      [...detected, ...selected].map((item) => [item.kind, item]),
     ).values(),
   ];
 }
-async function rescanClis() {
-  await busy(async () => {
-    const previous = useAppStore.getState().clis;
-    try {
-      const clis = await invoke<CliInfo[]>("detect_clis");
-      useAppStore.setState((current) => ({
-        clis: mergeDetected(clis, previous, current.clis, (cli) => cli.kind),
-      }));
-    } catch (error) {
-      reportError(error);
-    }
-  });
-}
 async function discover() {
-  const previous = useAppStore.getState();
+  const previous = useAppStore.getState().clis;
   try {
-    const [clis, terminals] = await Promise.all([
-      invoke<CliInfo[]>("detect_clis"),
-      invoke<TerminalInfo[]>("detect_terminals"),
-    ]);
+    const clis = await invoke<CliInfo[]>("detect_clis");
     useAppStore.setState((current) => ({
-      clis: mergeDetected(clis, previous.clis, current.clis, (cli) => cli.kind),
-      terminals: mergeDetected(
-        terminals,
-        previous.terminals,
-        current.terminals,
-        (terminal) => terminal.id,
-      ),
+      clis: mergeDetected(clis, previous, current.clis),
     }));
   } catch (error) {
     reportError(error);
@@ -116,21 +90,12 @@ async function perform(
 export const useAppStore = create<Store>((set) => ({
   data: null,
   clis: [],
-  terminals: [],
   error: null,
   busy: false,
   refresh,
   detect,
-  rescanClis,
   perform,
   setError: (error) => set({ error }),
-  addTerminal: (terminal) =>
-    set((state) => ({
-      terminals: [
-        ...state.terminals.filter((item) => item.id !== terminal.id),
-        terminal,
-      ],
-    })),
   addCli: (cli) =>
     set((state) => ({
       clis: [...state.clis.filter((item) => item.kind !== cli.kind), cli],

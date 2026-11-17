@@ -53,6 +53,7 @@ pub struct ScheduleInput {
     pub name: String,
     pub cli: CliKind,
     pub cli_path: String,
+    // Serialized legacy selection; execution always uses the embedded runner.
     pub terminal: TerminalInfo,
     pub working_directory: String,
     pub prompt: String,
@@ -179,11 +180,6 @@ pub struct LaunchPlan {
     pub executable: String,
     pub arguments: Vec<String>,
     pub working_directory: String,
-    pub environment: BTreeMap<String, String>,
-    pub terminal_adapter_id: String,
-    pub prompt_delivery: String,
-    pub status_tracking_strategy: String,
-    pub close_behavior: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Ticket {

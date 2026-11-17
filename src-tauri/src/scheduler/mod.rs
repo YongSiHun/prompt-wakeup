@@ -2,11 +2,10 @@ mod poll;
 mod reconciliation;
 pub mod schedule_service;
 use crate::{
-    execution::ExecutionService,
+    execution::{launcher, ExecutionService},
     models::*,
     security::require,
     storage::{Result, StorageRepository},
-    terminal::TerminalLauncher,
 };
 use chrono::{DateTime, Utc};
 use poll::PollPlan;
@@ -17,12 +16,12 @@ use std::sync::{
     Arc, Mutex, MutexGuard,
 };
 
-type TerminalLaunch = dyn Fn(&TerminalInfo, &str) -> Result<()> + Send + Sync;
+type JobLaunch = dyn Fn(&str) -> Result<()> + Send + Sync;
 pub struct SchedulerManager {
     pub repository: StorageRepository,
     pub state: Mutex<Snapshot>,
     pub stopping: AtomicBool,
-    terminal_launcher: Arc<TerminalLaunch>,
+    job_launcher: Arc<JobLaunch>,
     probe_interval: AtomicI64,
     retention_interval: AtomicI64,
 }
@@ -37,7 +36,7 @@ impl SchedulerManager {
             repository,
             state: Mutex::new(state),
             stopping: AtomicBool::new(false),
-            terminal_launcher: Arc::new(TerminalLauncher::launch),
+            job_launcher: Arc::new(launcher::launch),
             probe_interval: AtomicI64::new(i64::MIN),
             retention_interval: AtomicI64::new(i64::MIN),
         }))
@@ -98,16 +97,6 @@ impl SchedulerManager {
             Ok(())
         })
     }
-    pub fn remember_terminal(&self, terminal: TerminalInfo) -> Result<()> {
-        self.edit_state(|state| {
-            state
-                .settings
-                .custom_terminals
-                .retain(|item| item.id != terminal.id);
-            state.settings.custom_terminals.push(terminal);
-            crate::storage::settings_service::SettingsService::validate(&state.settings)
-        })
-    }
     pub fn remember_cli(&self, kind: CliKind, path: String) -> Result<()> {
         self.edit_state(|state| {
             state
@@ -121,7 +110,7 @@ impl SchedulerManager {
         let (schedule, execution_id) = self.claim(id, manual)?;
         // OS dialogs and terminal startup must never hold the scheduler state lock.
         let result = ExecutionService::prepare(&self.repository, &schedule, &execution_id)
-            .and_then(|_| (self.terminal_launcher)(&schedule.input.terminal, &execution_id));
+            .and_then(|_| (self.job_launcher)(&execution_id));
         self.finish_launch(id, &execution_id, &result)?;
         result
     }
@@ -236,4 +225,4 @@ fn remove_failed_ticket(repository: &StorageRepository, id: &str, result: &Resul
     }
 }
 #[cfg(test)]
-pub(crate) mod tests;
+mod tests;

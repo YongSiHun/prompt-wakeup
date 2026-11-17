@@ -2,7 +2,7 @@ use super::*;
 fn fixture(code: i32) -> (tempfile::TempDir, StorageRepository, ScheduleInput) {
     let directory = tempfile::tempdir().unwrap();
     let repository = StorageRepository::at(directory.path().join("data")).unwrap();
-    let input = crate::scheduler::tests::input(directory.path());
+    let input = crate::test_support::input(directory.path());
     let script = format!("const fs=require('node:fs');if(process.argv.includes('--version')){{console.log('fixture 1');process.exit(0)}}console.log('한글 stdout');console.error('stderr fixture');const data=[];process.stdin.on('data',c=>data.push(c));process.stdin.on('end',()=>{{fs.writeFileSync('received.txt',Buffer.concat(data));process.exit({code})}});");
     std::fs::write(directory.path().join("fixture.cjs"), script).unwrap();
     std::fs::write(&input.cli_path, cli_shim()).unwrap();

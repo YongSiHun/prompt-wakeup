@@ -102,9 +102,6 @@ pub fn is_batch(path: &str) -> bool {
         .iter()
         .any(|candidate| extension.eq_ignore_ascii_case(candidate))
 }
-pub fn sh_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "'\"'\"'"))
-}
-pub fn ps_quote(value: &str) -> String {
-    format!("'{}'", value.replace('\'', "''"))
-}
+
+#[cfg(test)]
+mod tests;

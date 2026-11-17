@@ -1,25 +1,22 @@
 pub mod adapters;
+mod version;
 use crate::{
     models::*,
     security::{require, SecurityValidator},
-    storage::{err, Result},
+    storage::Result,
 };
 use adapters::{ClaudeAdapter, CodexAdapter, GeminiAdapter};
 use std::{
-    io::Read,
     path::{Path, PathBuf},
-    process::{Child, Command, ExitStatus, Stdio},
-    time::{Duration, Instant},
+    process::Command,
 };
+pub use version::version;
 
 pub trait AiCliAdapter: Send + Sync {
     fn detect(&self) -> Option<String>;
     fn validate(&self, path: &str) -> Result<()>;
     fn get_version(&self, path: &str) -> Result<String>;
     fn build_launch_plan(&self, input: &ScheduleInput) -> LaunchPlan;
-    fn supports_exit_tracking(&self) -> bool {
-        true
-    }
 }
 pub fn adapter(kind: CliKind) -> &'static dyn AiCliAdapter {
     match kind {
@@ -124,65 +121,6 @@ fn batch_command(path: &str, arguments: &[String]) -> Result<Command> {
 fn safe_argument(character: char) -> bool {
     character.is_ascii_alphanumeric() || " -_".contains(character)
 }
-const VERSION_TIMEOUT: Duration = Duration::from_secs(5);
-
-pub fn version(path: &str) -> Result<String> {
-    let started = Instant::now();
-    let mut command = command(path, &["--version".into()])?;
-    command
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null());
-    hide_probe(&mut command);
-    let mut child = command.spawn().map_err(err)?;
-    let stdout = child.stdout.take().ok_or("CLI 출력 채널이 없습니다.")?;
-    // Drain stdout while waiting: a full pipe otherwise blocks the CLI from exiting.
-    let (sender, output) = std::sync::mpsc::channel();
-    std::thread::spawn(move || {
-        let _ = sender.send(read_version_output(stdout));
-    });
-    let status = wait_for_version(&mut child)?;
-    require(
-        status.success(),
-        "CLI 버전 검사 실패. 터미널에서 설치 및 로그인을 확인하세요.",
-    )?;
-    output
-        .recv_timeout(VERSION_TIMEOUT.saturating_sub(started.elapsed()))
-        .map_err(|_| "CLI 출력 확인 시간 초과 또는 출력 처리 오류")?
-}
-fn read_version_output(mut stdout: impl Read) -> Result<String> {
-    let mut preview = Vec::new();
-    (&mut stdout)
-        .take(4096)
-        .read_to_end(&mut preview)
-        .map_err(err)?;
-    std::io::copy(&mut stdout, &mut std::io::sink()).map_err(err)?;
-    Ok(String::from_utf8_lossy(&preview).trim().into())
-}
-fn wait_for_version(child: &mut Child) -> Result<ExitStatus> {
-    let start = Instant::now();
-    loop {
-        if let Some(status) = child.try_wait().map_err(err)? {
-            return Ok(status);
-        }
-        if start.elapsed() >= VERSION_TIMEOUT {
-            return version_timeout(child);
-        }
-        std::thread::sleep(Duration::from_millis(40));
-    }
-}
-fn version_timeout(child: &mut Child) -> Result<ExitStatus> {
-    let _ = child.kill();
-    let _ = child.wait();
-    Err("CLI 버전 확인 시간 초과".into())
-}
-#[cfg(windows)]
-fn hide_probe(command: &mut Command) {
-    use std::os::windows::process::CommandExt;
-    command.creation_flags(0x08000000);
-}
-#[cfg(not(windows))]
-fn hide_probe(_: &mut Command) {}
 pub fn inspect(kind: CliKind, path: String) -> CliInfo {
     let adapter = adapter(kind);
     let result = adapter
@@ -232,10 +170,8 @@ pub fn plan(input: &ScheduleInput, arguments: Vec<String>) -> LaunchPlan {
         executable: input.cli_path.clone(),
         arguments,
         working_directory: input.working_directory.clone(),
-        environment: Default::default(),
-        terminal_adapter_id: "embedded".into(),
-        prompt_delivery: "stdin_utf8".into(),
-        status_tracking_strategy: "signed_ticket_result_file".into(),
-        close_behavior: "persist_output".into(),
     }
 }
+
+#[cfg(test)]
+mod tests;

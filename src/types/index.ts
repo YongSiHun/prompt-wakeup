@@ -1,4 +1,5 @@
-export type CliKind = "codex" | "claude" | "gemini";
+export const cliKinds = ["codex", "claude", "gemini"] as const;
+export type CliKind = (typeof cliKinds)[number];
 export type Status =
   | "pending"
   | "launching"

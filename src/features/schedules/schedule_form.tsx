@@ -1,90 +1,17 @@
-import { Modal } from "../../components/modal";
 import { useState, type FormEvent } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
-import { useExecutablePicker } from "../../hooks/use_executable_picker";
+import { Modal } from "../../components/modal";
+import { DirectoryField } from "../../components/directory_field";
+import { useCliPicker } from "../../hooks/use_cli_picker";
 import { useAppStore } from "../../stores/app_store";
-import type {
-  Schedule,
-  CliKind,
-  Settings,
-  CliInfo,
-  ScheduleInput,
-} from "../../types";
-import { embeddedTerminal } from "../../lib/embedded_terminal";
-import { localInput, utcFromLocal } from "../../lib/time";
-interface Draft {
-  name: string;
-  cli: CliKind;
-  cliPath: string;
-  directory: string;
-  prompt: string;
-  time: string;
-}
-function initialDraft(
-  schedule: Schedule | undefined,
-  settings: Settings,
-): Draft {
-  if (schedule) return existingDraft(schedule);
-  return defaultDraft(settings);
-}
-function existingDraft(schedule: Schedule): Draft {
-  return {
-    name: schedule.name,
-    cli: schedule.cli,
-    cliPath: schedule.cli_path,
-    directory: schedule.working_directory,
-    prompt: schedule.prompt,
-    time: localInput(new Date(schedule.scheduled_at)),
-  };
-}
-function defaultDraft(settings: Settings): Draft {
-  return {
-    name: "",
-    cli: settings.default_cli,
-    cliPath: "",
-    directory: settings.default_directory,
-    prompt: "",
-    time: localInput(new Date(Date.now() + 3600_000)),
-  };
-}
-function selectedCliPath(draft: Draft, clis: CliInfo[]): string {
-  if (draft.cliPath) return draft.cliPath;
-  const cli = clis.find((cli) => cli.kind === draft.cli);
-  if (!cli?.available)
-    throw new Error("CLI를 설치하거나 실행 파일을 선택하세요.");
-  return cli.executable_path;
-}
-function buildInput(draft: Draft, clis: CliInfo[]): ScheduleInput {
-  return {
-    name: draft.name,
-    cli: draft.cli,
-    cli_path: selectedCliPath(draft, clis),
-    terminal: embeddedTerminal,
-    working_directory: draft.directory,
-    prompt: draft.prompt,
-    scheduled_at: utcFromLocal(draft.time),
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    local_time: draft.time,
-    keep_open: false,
-  };
-}
-function cliPath(clis: CliInfo[], kind: CliKind) {
-  return (
-    clis.find((cli) => cli.kind === kind)?.executable_path ||
-    "AI CLI 실행 파일을 선택하세요."
-  );
-}
-function normalizeTime(value: string) {
-  return value.length === 16 ? value + ":00" : value;
-}
-async function chooseFolder(onSelect: (path: string) => void) {
-  try {
-    const path = await open({ directory: true, multiple: false });
-    if (typeof path === "string") onSelect(path);
-  } catch (error) {
-    useAppStore.getState().setError(String(error));
-  }
-}
+import { cliKinds, type Schedule, type CliKind } from "../../types";
+import {
+  initialDraft,
+  buildInput,
+  cliPath,
+  normalizeTime,
+  type ScheduleDraft,
+} from "./schedule_draft";
+
 export function ScheduleForm({
   schedule,
   onClose,
@@ -94,11 +21,13 @@ export function ScheduleForm({
 }) {
   const settings = useAppStore((state) => state.data!.settings);
   const clis = useAppStore((state) => state.clis);
-  const { picking, chooseCli } = useExecutablePicker();
+  const { picking, chooseCli } = useCliPicker();
   const busy = useAppStore((state) => state.busy) || picking;
   const [draft, setDraft] = useState(() => initialDraft(schedule, settings));
-  const update = <K extends keyof Draft>(key: K, value: Draft[K]) =>
-    setDraft((current) => ({ ...current, [key]: value }));
+  const update = <K extends keyof ScheduleDraft>(
+    key: K,
+    value: ScheduleDraft[K],
+  ) => setDraft((current) => ({ ...current, [key]: value }));
   async function submit(event: FormEvent) {
     event.preventDefault();
     const store = useAppStore.getState();
@@ -143,7 +72,7 @@ export function ScheduleForm({
                 }))
               }
             >
-              {(["codex", "claude", "gemini"] as const).map((kind) => (
+              {cliKinds.map((kind) => (
                 <option key={kind} value={kind}>
                   {kind}
                   {clis.find((cli) => cli.kind === kind)?.available
@@ -171,24 +100,12 @@ export function ScheduleForm({
             </p>
           </div>
         </div>
-        <label>
-          작업 디렉터리
-          <div className="row">
-            <input
-              required
-              value={draft.directory}
-              onChange={(event) => update("directory", event.target.value)}
-            />
-            <button
-              type="button"
-              onClick={() =>
-                void chooseFolder((path) => update("directory", path))
-              }
-            >
-              폴더 선택
-            </button>
-          </div>
-        </label>
+        <DirectoryField
+          label="작업 디렉터리"
+          required
+          value={draft.directory}
+          onChange={(path) => update("directory", path)}
+        />
         <label>
           프롬프트
           <textarea

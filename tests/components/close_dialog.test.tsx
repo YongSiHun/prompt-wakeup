@@ -1,20 +1,13 @@
-import {
-  cleanup,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
-import { CloseDialog } from "../src/components/close_dialog";
-import { useAppStore } from "../src/stores/app_store";
+import { CloseDialog } from "../../src/components/close_dialog";
+import { resetAppStore } from "../support/app_store";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 beforeEach(() => {
-  vi.clearAllMocks();
-  useAppStore.setState({ error: null });
+  vi.mocked(invoke).mockReset();
+  resetAppStore();
 });
-afterEach(cleanup);
 it.each([
   ["트레이로 보내기", "tray"],
   ["완전히 종료", "quit"],

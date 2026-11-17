@@ -1,3 +1,12 @@
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  vi.restoreAllMocks();
+});
+
 Object.defineProperties(HTMLDialogElement.prototype, {
   showModal: {
     value(this: HTMLDialogElement) {
