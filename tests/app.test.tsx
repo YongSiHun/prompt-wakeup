@@ -58,7 +58,37 @@ it("예약 목록과 취소 액션을 표시한다", async () => {
       ],
     },
   });
+  const snapshot = useAppStore.getState().data!;
+  const pending = snapshot.schedules[0];
+  useAppStore.setState({
+    data: {
+      ...snapshot,
+      schedules: [
+        pending,
+        ...(
+          [
+            "completed",
+            "failed",
+            "canceled",
+            "missed",
+            "launching",
+            "launched",
+          ] as const
+        ).map((status) => ({
+          ...pending,
+          id: status,
+          name: "숨김 " + status,
+          status,
+        })),
+      ],
+    },
+  });
   render(<App />);
+  expect(screen.queryByText(/숨김/)).toBeNull();
+  expect(
+    screen.queryByRole("heading", { name: "터미널 / 실행 결과" }),
+  ).toBeNull();
+  expect(screen.queryByText("실행 환경")).toBeNull();
   expect(screen.getByText("예약 목록 테스트")).toBeTruthy();
   expect(screen.queryByRole("button", { name: "스케줄러 상태" })).toBeNull();
   fireEvent.click(screen.getByText("취소"));

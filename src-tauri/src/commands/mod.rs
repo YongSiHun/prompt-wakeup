@@ -6,6 +6,28 @@ use crate::{
 use std::sync::Arc;
 use tauri::State;
 type ManagerState<'a> = State<'a, Arc<SchedulerManager>>;
+#[tauri::command]
+pub async fn delete_execution(manager: ManagerState<'_>, id: String) -> Result<()> {
+    let manager = manager.inner().clone();
+    blocking(move || manager.delete_execution(&id)).await
+}
+#[tauri::command]
+pub fn close_app(app: tauri::AppHandle, action: String) -> Result<()> {
+    use tauri::Manager;
+    match action.as_str() {
+        "tray" => app
+            .get_webview_window("main")
+            .ok_or("앱 창을 찾을 수 없습니다.")?
+            .hide()
+            .map_err(err),
+        "quit" => {
+            app.state::<Arc<SchedulerManager>>().stop()?;
+            app.exit(0);
+            Ok(())
+        }
+        _ => Err("종료 방식을 선택하세요.".into()),
+    }
+}
 async fn blocking<T, F>(work: F) -> Result<T>
 where
     T: Send + 'static,
@@ -101,4 +123,22 @@ pub async fn execution_output(manager: ManagerState<'_>, id: String) -> Result<S
         }
     })
     .await
+}
+
+#[tauri::command]
+pub fn execution_output_path(manager: ManagerState<'_>, id: String) -> Result<String> {
+    Ok(manager
+        .repository
+        .run_path(&id, "output")?
+        .to_string_lossy()
+        .into_owned())
+}
+#[tauri::command]
+pub async fn open_execution_output(
+    manager: ManagerState<'_>,
+    id: String,
+    folder: bool,
+) -> Result<()> {
+    let path = manager.repository.run_path(&id, "output")?;
+    blocking(move || crate::storage::output_files::open(&path, folder)).await
 }

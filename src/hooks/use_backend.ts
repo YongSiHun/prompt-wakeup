@@ -2,12 +2,16 @@ import { useEffect } from "react";
 import { listen, type UnlistenFn, type Event } from "@tauri-apps/api/event";
 import { useAppStore } from "../stores/app_store";
 type Subscription = readonly [string, (event: Event<unknown>) => void];
-function subscriptions(navigate: (page: string) => void): Subscription[] {
+function subscriptions(
+  navigate: (page: string) => void,
+  requestClose: () => void,
+): Subscription[] {
   const store = useAppStore.getState();
   return [
     ["state-changed", () => void store.refresh()],
     ["backend-error", (event) => store.setError(String(event.payload))],
     ["navigate", (event) => navigate(String(event.payload))],
+    ["close-requested", requestClose],
   ];
 }
 async function subscribeOne(
@@ -36,11 +40,14 @@ function subscribeAll(events: Subscription[]) {
     cleanup.forEach((unlisten) => unlisten());
   };
 }
-export function useBackend(navigate: (page: string) => void) {
+export function useBackend(
+  navigate: (page: string) => void,
+  requestClose: () => void,
+) {
   useEffect(() => {
     const store = useAppStore.getState();
     void store.refresh();
     void store.detect();
-    return subscribeAll(subscriptions(navigate));
-  }, [navigate]);
+    return subscribeAll(subscriptions(navigate, requestClose));
+  }, [navigate, requestClose]);
 }

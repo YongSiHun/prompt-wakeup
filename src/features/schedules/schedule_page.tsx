@@ -1,4 +1,4 @@
-import { ExecutionList } from "../executions/execution_list";
+import { Modal } from "../../components/modal";
 import { useCallback, useMemo, useState } from "react";
 import { useAppStore } from "../../stores/app_store";
 import { formatTime } from "../../lib/time";
@@ -19,7 +19,6 @@ export function SchedulePage() {
         사용량 제한 해제 시각은 직접 입력합니다. 예약 실패 시 자동 재시도하지
         않습니다.
       </p>
-      <ExecutionList />
       <ScheduleEditor editor={editor} onClose={() => setEditor(null)} />
       <ScheduleDetail schedule={detail} onClose={() => setDetail(null)} />
     </>
@@ -56,10 +55,6 @@ function ScheduleSummary() {
           <em>개</em>
         </strong>
       </section>
-      <section>
-        <small>실행 환경</small>
-        <strong>앱 내 터미널</strong>
-      </section>
     </div>
   );
 }
@@ -72,16 +67,16 @@ function ScheduleList({ onCreate, onEdit, onDetail }: ListProps) {
   const schedules = useAppStore((state) => state.data!.schedules);
   const sorted = useMemo(
     () =>
-      [...schedules].sort((a, b) =>
-        a.scheduled_at.localeCompare(b.scheduled_at),
-      ),
+      schedules
+        .filter((schedule) => schedule.status === "pending")
+        .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)),
     [schedules],
   );
   return (
     <>
       <div className="section-heading">
         <h2>
-          예약 작업 <small>{schedules.length}</small>
+          예약 작업 <small>{sorted.length}</small>
         </h2>
         <button className="primary" onClick={onCreate}>
           + 새 예약
@@ -138,24 +133,13 @@ function ScheduleDetail({
 }) {
   if (!schedule) return null;
   return (
-    <div className="overlay">
-      <section
-        className="modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="예약 상세"
-      >
-        <header>
-          <h2>{schedule.name}</h2>
-          <button onClick={onClose}>닫기</button>
-        </header>
-        <p>{schedule.cli} · 앱 내 터미널</p>
-        <p>{schedule.working_directory}</p>
-        <p>
-          {formatTime(schedule.scheduled_at)} · {schedule.timezone}
-        </p>
-        <pre>{schedule.prompt}</pre>
-      </section>
-    </div>
+    <Modal title={schedule.name} onClose={onClose}>
+      <p>{schedule.cli}</p>
+      <p>{schedule.working_directory}</p>
+      <p>
+        {formatTime(schedule.scheduled_at)} · {schedule.timezone}
+      </p>
+      <pre>{schedule.prompt}</pre>
+    </Modal>
   );
 }

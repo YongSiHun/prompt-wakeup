@@ -1,3 +1,4 @@
+pub mod output_files;
 pub mod settings_service;
 use crate::models::Snapshot;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};

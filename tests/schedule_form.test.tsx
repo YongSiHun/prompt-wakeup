@@ -144,7 +144,6 @@ describe("실행 파일 선택", () => {
   afterEach(cleanup);
 
   it("탐지된 CLI가 없어도 설정에서 파일을 지정할 수 있다", async () => {
-    vi.mocked(open).mockResolvedValueOnce("C:/custom/claude.exe");
     vi.mocked(invoke).mockResolvedValueOnce({
       kind: "claude",
       executable_path: "C:/custom/claude.exe",
@@ -153,13 +152,24 @@ describe("실행 파일 선택", () => {
       validation_error: null,
     });
     render(<SettingsPanel />);
-    fireEvent.click(screen.getAllByText("실행 파일 지정")[1]);
+    fireEvent.click(screen.getByText("+ 추가"));
+    fireEvent.change(screen.getByLabelText("CLI 이름"), {
+      target: { value: "claude" },
+    });
+    fireEvent.change(screen.getByLabelText("실행 파일 경로"), {
+      target: { value: "C:/custom/claude.exe" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "저장" }));
     await waitFor(() =>
       expect(
-        (screen.getByLabelText("기본 AI CLI") as HTMLSelectElement).value,
-      ).toBe("claude"),
+        useAppStore.getState().clis.find((cli) => cli.kind === "claude")
+          ?.executable_path,
+      ).toBe("C:/custom/claude.exe"),
     );
-    expect(screen.getByText("C:/custom/claude.exe")).toBeTruthy();
+    expect(invoke).toHaveBeenCalledWith("manual_cli", {
+      kind: "claude",
+      path: "C:/custom/claude.exe",
+    });
   });
 });
 

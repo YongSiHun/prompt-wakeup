@@ -116,7 +116,7 @@ pub fn report_error(app: &tauri::AppHandle, error: String) {
 pub fn window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
         api.prevent_close();
-        let _ = window.hide();
+        let _ = window.emit("close-requested", ());
     }
 }
 pub fn app_event(app: &tauri::AppHandle, event: tauri::RunEvent) {

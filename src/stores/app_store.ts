@@ -9,6 +9,7 @@ interface Store {
   busy: boolean;
   refresh: () => Promise<void>;
   detect: () => Promise<void>;
+  rescanClis: () => Promise<void>;
   perform: (
     command: string,
     args?: Record<string, unknown>,
@@ -56,6 +57,19 @@ function mergeDetected<T>(
       [...detected, ...selected].map((item) => [key(item), item]),
     ).values(),
   ];
+}
+async function rescanClis() {
+  await busy(async () => {
+    const previous = useAppStore.getState().clis;
+    try {
+      const clis = await invoke<CliInfo[]>("detect_clis");
+      useAppStore.setState((current) => ({
+        clis: mergeDetected(clis, previous, current.clis, (cli) => cli.kind),
+      }));
+    } catch (error) {
+      reportError(error);
+    }
+  });
 }
 async function discover() {
   const previous = useAppStore.getState();
@@ -107,6 +121,7 @@ export const useAppStore = create<Store>((set) => ({
   busy: false,
   refresh,
   detect,
+  rescanClis,
   perform,
   setError: (error) => set({ error }),
   addTerminal: (terminal) =>

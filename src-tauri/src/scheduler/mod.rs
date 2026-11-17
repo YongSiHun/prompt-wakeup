@@ -75,6 +75,19 @@ impl SchedulerManager {
         }
         self.edit_state(|state| ScheduleService::action(state, &id, action))
     }
+    pub fn delete_execution(&self, id: &str) -> Result<()> {
+        self.edit_state(|state| {
+            let execution = find_execution(state, id)?;
+            require(
+                execution.ended_at.is_some(),
+                "실행이 끝난 후 삭제할 수 있습니다.",
+            )?;
+            state.executions.retain(|execution| execution.id != id);
+            Ok(())
+        })?;
+        self.repository.remove_run(id);
+        Ok(())
+    }
     pub fn settings(&self, settings: Settings) -> Result<()> {
         crate::storage::settings_service::SettingsService::validate(&settings)?;
         self.edit_state(|state| {

@@ -1,3 +1,4 @@
+import { CloseDialog } from "./components/close_dialog";
 import { useCallback, useState } from "react";
 import { AppShell, isPage, type Page } from "./components/app_shell";
 import { useBackend } from "./hooks/use_backend";
@@ -15,10 +16,13 @@ export default function App() {
   const navigate = useCallback((value: string) => {
     if (isPage(value)) setPage(value);
   }, []);
-  useBackend(navigate);
+  const [closing, setClosing] = useState(false);
+  const requestClose = useCallback(() => setClosing(true), []);
+  useBackend(navigate, requestClose);
   return (
     <AppShell page={page} navigate={setPage}>
       <Screen page={page} />
+      {closing && <CloseDialog onClose={() => setClosing(false)} />}
     </AppShell>
   );
 }

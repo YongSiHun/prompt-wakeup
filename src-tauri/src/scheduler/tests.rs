@@ -374,3 +374,44 @@ fn verbose_version_output_does_not_fill_the_pipe() {
     assert!(version.starts_with("fake-cli"));
     assert!(version.len() <= 4096);
 }
+
+#[test]
+fn delete_execution_preserves_schedule_and_removes_saved_output() {
+    let (directory, manager) = setup();
+    manager.upsert(None, input(directory.path())).unwrap();
+    let schedule = manager.snapshot().unwrap().schedules[0].clone();
+    let mut execution = ExecutionRecord::new(&schedule);
+    execution.status = ExecutionStatus::Completed;
+    execution.ended_at = Some(Utc::now());
+    let id = execution.id.clone();
+    manager
+        .edit_state(|state| {
+            state.executions.push(execution);
+            Ok(())
+        })
+        .unwrap();
+    let output = manager.repository.run_path(&id, "output").unwrap();
+    std::fs::write(&output, "saved output").unwrap();
+    manager.delete_execution(&id).unwrap();
+    assert!(!output.exists());
+    assert!(manager.snapshot().unwrap().executions.is_empty());
+    assert!(manager.repository.snapshot().unwrap().executions.is_empty());
+    assert_eq!(manager.snapshot().unwrap().schedules, vec![schedule]);
+}
+
+#[test]
+fn delete_running_execution_is_rejected() {
+    let (directory, manager) = setup();
+    manager.upsert(None, input(directory.path())).unwrap();
+    let schedule = manager.snapshot().unwrap().schedules[0].clone();
+    let execution = ExecutionRecord::new(&schedule);
+    let id = execution.id.clone();
+    manager
+        .edit_state(|state| {
+            state.executions.push(execution);
+            Ok(())
+        })
+        .unwrap();
+    assert!(manager.delete_execution(&id).is_err());
+    assert_eq!(manager.snapshot().unwrap().executions.len(), 1);
+}

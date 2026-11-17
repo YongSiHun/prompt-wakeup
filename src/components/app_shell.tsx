@@ -45,7 +45,7 @@ export function AppShell({
         <div className="aside-note">
           <span className="dot" />앱 실행 중에만 예약 유효
           <br />
-          닫기 버튼을 누르면 트레이로 숨깁니다.
+          닫을 때 트레이 유지 또는 종료를 선택합니다.
         </div>
       </aside>
       <main>

@@ -18,6 +18,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::snapshot,
             commands::execution_output,
+            commands::execution_output_path,
+            commands::open_execution_output,
+            commands::delete_execution,
+            commands::close_app,
             commands::save_schedule,
             commands::schedule_action,
             commands::save_settings,

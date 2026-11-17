@@ -1,3 +1,5 @@
+param([switch]$RequireSigned)
+
 $ErrorActionPreference = 'Stop'
 
 function Assert-ExitCode([string]$message) {
@@ -25,12 +27,19 @@ function Sign-Executable {
         $tool = Get-SigningTool
         & $tool sign /sha1 $certificate.Thumbprint /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 src-tauri/target/release/PromptWakeup.exe
         Assert-ExitCode 'Signing failed'
-        & $tool verify /pa src-tauri/target/release/PromptWakeup.exe
+        & $tool verify /pa /all /tw src-tauri/target/release/PromptWakeup.exe
         Assert-ExitCode 'Signature verification failed'
+        $signature = Get-AuthenticodeSignature -LiteralPath src-tauri/target/release/PromptWakeup.exe
+        if ($signature.Status -ne 'Valid' -or !$signature.TimeStamperCertificate) {
+            throw 'A trusted Authenticode signature and timestamp are required'
+        }
     } finally { Remove-SigningCredentials $path $certificate }
 }
 function Get-BuildMode {
-    if (!$env:CERTIFICATE) { return 'development-unsigned' }
+    if (!$env:CERTIFICATE) {
+        if ($RequireSigned) { throw 'Signed build requires WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD in GitHub Secrets' }
+        return 'development-unsigned'
+    }
     Sign-Executable
     return 'signed'
 }

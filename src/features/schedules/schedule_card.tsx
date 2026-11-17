@@ -22,7 +22,6 @@ export const ScheduleCard = memo(function ScheduleCard({
       </div>
       <div className="meta">
         <span>{schedule.cli.toUpperCase()}</span>
-        <span>{schedule.terminal.name}</span>
         <span title={schedule.working_directory}>
           {schedule.working_directory}
         </span>
