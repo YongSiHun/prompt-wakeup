@@ -1,7 +1,43 @@
+# Dependencies
 node_modules/
-dist/
-src-tauri/target/
+
+# Build / generated
+/dist/
+/artifacts/
+/target/
+/src-tauri/target/
+/src-tauri/gen/
+*.tsbuildinfo
+
+# Test output
+/coverage/
+tests/**/.shim-*/
+
+# Local config / signing credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
 *.local
-artifacts/
-tests/**/.shim-*
-yarn.lock
+*.pfx
+*.p12
+*.key
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor temp
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.suo
+*.user
+*.swp
+*.swo
+*~
+
+# Track yarn.lock and src-tauri/Cargo.lock for reproducible builds.
