@@ -8,6 +8,14 @@ AI CLI 예약 실행 앱 · Win/macOS · MIT
 - 닫기: 트레이 유지 / 종료
 - CLI 설정: 이름 선택·경로 지정·재탐색
 
+## Stack
+
+- UI: React 19 · TS · Vite 6 · Tailwind CSS 4 · Zustand 5
+- Desktop: Tauri 2 · Rust · Tokio
+- Data: 로컬 JSON · Serde · Chrono
+- Test: Vitest · Testing Library · Cargo test
+- Quality/CI: ESLint · SonarJS · Prettier · rustfmt · Clippy · GitHub Actions
+
 ## Dev
 
 Node LTS · Yarn 1.22 · Rust stable. Win: MSVC Build Tools + WebView2. macOS: Xcode CLI Tools.
