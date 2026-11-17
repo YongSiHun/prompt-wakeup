@@ -11,11 +11,10 @@ beforeEach(() => {
   vi.mocked(invoke)
     .mockReset()
     .mockImplementation(async (command, args) => {
+      const id = args && "id" in args ? args.id : undefined;
       if (command === "execution_output_path")
-        return "C:/runs/" + args?.id + ".output";
-      return args?.id === "run-1"
-        ? "첫 작업 stdout\n첫 작업 stderr"
-        : "둘째 결과";
+        return "C:/runs/" + id + ".output";
+      return id === "run-1" ? "첫 작업 stdout\n첫 작업 stderr" : "둘째 결과";
     });
 });
 it("작업별 출력과 오류를 분리해서 표시한다", async () => {
