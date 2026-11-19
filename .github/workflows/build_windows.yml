@@ -8,10 +8,10 @@ on:
         required: false
         default: false
       signed_build:
-        description: "코드 서명 필수 (인증서 없는 개발 빌드만 해제)"
+        description: "코드 서명 필수 (인증서 등록 시 선택, Release 게시는 항상 필수)"
         type: boolean
         required: false
-        default: true
+        default: false
 permissions:
   contents: read
 jobs:

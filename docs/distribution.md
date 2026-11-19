@@ -20,7 +20,7 @@ GitHub Actions에서 **Build Windows** 또는 **Build macOS → Run workflow**�
 
 ## 서명 및 공증
 
-GitHub Secrets에 아래 값을 등록합니다. Windows 수동 빌드는 기본적으로 `signed_build=true`이며, 인증서가 없으면 빌드를 중단합니다. 인증서 없는 개발 빌드는 `signed_build=false`, `publish_release=false`로 실행하세요. Release 게시에는 항상 서명이 필요합니다. macOS는 인증서가 없으면 미서명 개발 빌드로 구분합니다.
+서명 빌드에는 GitHub Secrets에 아래 값을 등록합니다. Windows 수동 빌드의 기본값은 `signed_build=false`, `publish_release=false`이며, 인증서 없이 개발 빌드를 만들 수 있습니다. 서명이 필요한 경우 `signed_build=true`를 선택하세요. Release 게시에는 항상 서명이 필요하며, 서명이 요구되는 빌드에서 인증서나 비밀번호가 없으면 빌드를 중단합니다. macOS는 인증서가 없으면 미서명 개발 빌드로 구분합니다.
 
 | 플랫폼     | Secrets                                                                                                                            |
 | ---------- | ---------------------------------------------------------------------------------------------------------------------------------- |
