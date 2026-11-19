@@ -7,11 +7,6 @@ on:
         type: boolean
         required: false
         default: false
-      signed_build:
-        description: "코드 서명 필수 (인증서 등록 시 선택, Release 게시는 항상 필수)"
-        type: boolean
-        required: false
-        default: false
 permissions:
   contents: read
 jobs:
@@ -19,16 +14,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check signing configuration
-        env:
-          REQUIRE_SIGNED: ${{ inputs.signed_build || inputs.publish_release }}
-          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        shell: pwsh
-        run: |
-          if ($env:REQUIRE_SIGNED -eq 'true' -and (!$env:CERTIFICATE -or !$env:CERTIFICATE_PASSWORD)) {
-            throw 'Register WINDOWS_CERTIFICATE and WINDOWS_CERTIFICATE_PASSWORD in GitHub Secrets. Unsigned development builds require signed_build=false and publish_release=false.'
-          }
       - uses: actions/setup-node@v4
         with:
           node-version: lts/*
@@ -49,12 +34,8 @@ jobs:
       - run: cargo check --manifest-path src-tauri/Cargo.toml --all-targets
       - run: cargo test --manifest-path src-tauri/Cargo.toml
       - run: yarn tauri build --no-bundle
-      - name: Sign and package portable EXE
-        env:
-          REQUIRE_SIGNED: ${{ inputs.signed_build || inputs.publish_release }}
-          CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-          CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: ./scripts/package_windows.ps1 -RequireSigned:([bool]::Parse($env:REQUIRE_SIGNED))
+      - name: Package portable EXE
+        run: ./scripts/package_windows.ps1
       - name: Upload PromptWakeup.exe
         uses: actions/upload-artifact@v4
         with:

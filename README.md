@@ -46,4 +46,4 @@ yarn tauri build --no-bundle    # Win EXE
 yarn tauri build --bundles app # macOS APP
 ```
 
-수동 CI·서명·저장 경로: [배포](docs/distribution.md) · [검증](docs/verification.md)
+수동 CI·배포·저장 경로: [배포](docs/distribution.md) · [검증](docs/verification.md)
