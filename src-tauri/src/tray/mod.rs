@@ -5,6 +5,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIcon, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager,
 };
+// UI: 창 복원·활성화.
 pub fn show(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
@@ -14,6 +15,7 @@ pub fn show(app: &tauri::AppHandle) {
 }
 pub struct TrayManager;
 impl TrayManager {
+    // OS: 트레이 설치.
     pub fn install(app: &tauri::App) -> tauri::Result<()> {
         let menu = menu(app)?;
         let icon = app
@@ -31,6 +33,7 @@ impl TrayManager {
         Ok(())
     }
 }
+// UI: 트레이 메뉴 구성.
 fn menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
     let entries = [
         ("open", "PromptWakeup 열기"),
@@ -48,6 +51,7 @@ fn menu(app: &tauri::App) -> tauri::Result<Menu<tauri::Wry>> {
         .collect();
     Menu::with_items(app, &references)
 }
+// UI: 트레이 메뉴 동작.
 fn menu_event(app: &tauri::AppHandle, event: MenuEvent) {
     match event.id.as_ref() {
         "quit" => quit(app),
@@ -55,10 +59,12 @@ fn menu_event(app: &tauri::AppHandle, event: MenuEvent) {
         _ => show(app),
     }
 }
+// UI: 화면 이동.
 fn navigate(app: &tauri::AppHandle, page: &str) {
     show(app);
     let _ = app.emit("navigate", page);
 }
+// 실행: 저장 후 앱 종료.
 fn quit(app: &tauri::AppHandle) {
     match app.state::<Arc<SchedulerManager>>().stop() {
         Ok(()) => app.exit(0),
@@ -68,6 +74,7 @@ fn quit(app: &tauri::AppHandle) {
         }
     }
 }
+// UI: 트레이 클릭 처리.
 fn tray_event(tray: &TrayIcon, event: TrayIconEvent) {
     if let TrayIconEvent::Click {
         button: MouseButton::Left,

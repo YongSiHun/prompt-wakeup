@@ -9,12 +9,14 @@ import {
   type ButtonHTMLAttributes,
 } from "react";
 const DismissContext = createContext<() => void>(() => {});
+// UI: 모달 취소.
 export function ModalCancelButton(
   props: ButtonHTMLAttributes<HTMLButtonElement>,
 ) {
   const dismiss = useContext(DismissContext);
   return <button {...props} type="button" onClick={dismiss} />;
 }
+// UI: 모달·닫기 확인.
 export function Modal({
   title,
   onClose,
@@ -31,6 +33,7 @@ export function Modal({
   const error = useAppStore((state) => state.error);
   const dialog = useRef<HTMLDialogElement>(null);
   const [confirming, setConfirming] = useState(false);
+  // UI: 닫기 요청.
   const requestDismiss = () => {
     if (dismissDisabled) return;
     if (confirmDismiss) setConfirming(true);

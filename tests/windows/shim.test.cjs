@@ -11,6 +11,7 @@ const argumentsByCli = {
 const prompt =
   '한글 "따옴표" & echo HACKED > pwned\n$(touch pwned) %PATH% ! ^ | < >\n둘째 줄';
 
+// Test: fixture.
 async function fixture() {
   const root = await fs.mkdtemp(path.join(__dirname, ".shim-"));
   const directory = path.join(root, "한글 폴더");
@@ -24,12 +25,14 @@ async function fixture() {
   );
   return { root, directory };
 }
+// Test: cleanup.
 async function cleanup(directory) {
   const target = await fs.realpath(directory);
   assert.equal(path.dirname(target), await fs.realpath(__dirname));
   assert.ok(path.basename(target).startsWith(".shim-"));
   await fs.rm(target, { recursive: true, force: true });
 }
+// Test: launch.
 function launch(directory, args, exitCode) {
   const shim = path.join(directory, "codex.cmd");
   const command =
@@ -54,6 +57,7 @@ function launch(directory, args, exitCode) {
     child.on("close", resolve);
   });
 }
+// Test: assert transport.
 async function assertTransport(directory, args, exitCode) {
   assert.equal(await launch(directory, args, exitCode), exitCode);
   assert.deepEqual(

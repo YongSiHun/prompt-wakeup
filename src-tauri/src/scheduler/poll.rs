@@ -16,6 +16,7 @@ pub struct PollPlan {
     pub expired: HashSet<String>,
 }
 impl PollPlan {
+    // 상태: 예약 갱신 계획.
     pub fn build(
         repository: &StorageRepository,
         state: &Snapshot,
@@ -32,6 +33,7 @@ impl PollPlan {
         }
         plan
     }
+    // 조회: 실행 시각 도달 예약.
     fn collect_due(&mut self, state: &Snapshot, now: DateTime<Utc>, gap: bool) {
         for schedule in state
             .schedules
@@ -41,6 +43,7 @@ impl PollPlan {
             self.classify_due(schedule, now, gap);
         }
     }
+    // 상태: 실행·놓침 분류.
     fn classify_due(&mut self, schedule: &Schedule, now: DateTime<Utc>, gap: bool) {
         if gap || now - schedule.input.scheduled_at > Duration::seconds(5) {
             self.statuses
@@ -49,6 +52,7 @@ impl PollPlan {
             self.due.push(schedule.id.clone());
         }
     }
+    // I/O: 활성 실행 결과 수집.
     fn collect_results(
         &mut self,
         repository: &StorageRepository,
@@ -68,6 +72,7 @@ impl PollPlan {
                 .map(|execution| (execution.schedule_id.clone(), execution.schedule_status())),
         );
     }
+    // 조회: 보존 기간 만료 이력.
     fn collect_expired(&mut self, state: &Snapshot, now: DateTime<Utc>) {
         let cutoff = now - Duration::days(state.settings.retention_days.into());
         self.expired = state
@@ -77,15 +82,18 @@ impl PollPlan {
             .map(|execution| execution.id.clone())
             .collect();
     }
+    // 상태: 변경 여부.
     pub fn changed(&self) -> bool {
         !self.statuses.is_empty() || !self.executions.is_empty() || !self.expired.is_empty()
     }
+    // 변환: 감시 결과.
     pub fn outcome(&self) -> TickOutcome {
         TickOutcome {
             due: self.due.clone(),
             changed: self.changed(),
         }
     }
+    // 상태: 변경 계획 반영.
     pub fn apply(&self, state: &mut Snapshot) {
         for schedule in &mut state.schedules {
             self.update_schedule(schedule);
@@ -102,17 +110,20 @@ impl PollPlan {
             replace_execution(execution, &updates);
         }
     }
+    // 상태: 예약 결과 반영.
     fn update_schedule(&self, schedule: &mut Schedule) {
         if let Some(status) = self.statuses.get(&schedule.id) {
             schedule.status = *status;
         }
     }
 }
+// 상태: ID별 실행 결과 반영.
 fn replace_execution(execution: &mut ExecutionRecord, updates: &HashMap<&str, &ExecutionRecord>) {
     if let Some(update) = updates.get(execution.id.as_str()) {
         *execution = (**update).clone();
     }
 }
+// 상태: 재시작 복구·중복 실행 방지.
 pub fn recover(state: &mut Snapshot, now: DateTime<Utc>) {
     let running: HashSet<_> = state
         .executions
@@ -130,6 +141,7 @@ pub fn recover(state: &mut Snapshot, now: DateTime<Utc>) {
         .filter(|execution| execution.active())
         .for_each(restore_execution);
 }
+// 상태: 예약 추적·놓침 복구.
 fn restore_schedule(schedule: &mut Schedule, running: &HashSet<&str>, now: DateTime<Utc>) {
     if running.contains(schedule.id.as_str()) || schedule.status.is_running() {
         schedule.status = ScheduleStatus::Launched;
@@ -137,6 +149,7 @@ fn restore_schedule(schedule: &mut Schedule, running: &HashSet<&str>, now: DateT
         schedule.status = ScheduleStatus::Missed;
     }
 }
+// 상태: 실행 결과 재확인.
 fn restore_execution(execution: &mut ExecutionRecord) {
     execution.status = ExecutionStatus::Unknown;
     execution.error =

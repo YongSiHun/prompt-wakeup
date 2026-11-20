@@ -5,6 +5,7 @@ use crate::{
 };
 pub struct SettingsService;
 impl SettingsService {
+    // 검증: 입력 정책.
     pub fn validate(settings: &Settings) -> Result<()> {
         require(
             ["system", "light", "dark"].contains(&settings.theme.as_str()),
@@ -13,10 +14,6 @@ impl SettingsService {
         require(
             (1..=3650).contains(&settings.retention_days),
             "보존 기간은 1~3650일이어야 합니다.",
-        )?;
-        require(
-            settings.custom_terminals.len() <= 100,
-            "사용자 지정 터미널은 최대 100개입니다.",
         )?;
         require(
             settings

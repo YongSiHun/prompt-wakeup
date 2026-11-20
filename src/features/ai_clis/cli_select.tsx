@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { CliInfo, CliKind } from "../../types";
 import { availableClis } from "./cli_service";
+// UI: 사용 가능한 CLI 선택.
 export function CliSelect({
   clis,
   value,

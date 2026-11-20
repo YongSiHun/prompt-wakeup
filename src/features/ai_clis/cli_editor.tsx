@@ -5,6 +5,7 @@ import { useAppStore } from "../../stores/app_store";
 import { cliKinds, type CliInfo, type CliKind } from "../../types";
 import { registerCli } from "./cli_service";
 
+// UI: CLI 등록·수정.
 export function CliEditor({
   cli,
   onClose,
@@ -18,6 +19,7 @@ export function CliEditor({
   const [path, setPath] = useState(cli?.executable_path ?? "");
   const [busy, setBusy] = useState(false);
   const store = useAppStore.getState();
+  // I/O: 실행 파일 선택.
   async function browse() {
     try {
       const selected = await open({
@@ -30,6 +32,7 @@ export function CliEditor({
       store.setError(String(error));
     }
   }
+  // IPC: 입력 검증·저장.
   async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
@@ -49,9 +52,7 @@ export function CliEditor({
     <Modal
       title={cli ? "CLI 수정" : "CLI 추가"}
       dismissDisabled={busy}
-      onClose={() => {
-        if (!busy) onClose();
-      }}
+      onClose={onClose}
     >
       <form onSubmit={submit}>
         <label>

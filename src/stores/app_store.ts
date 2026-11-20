@@ -18,6 +18,7 @@ interface Store {
 let pendingOperations = 0;
 let snapshotRequest = 0;
 let detectionRequest: Promise<void> | null = null;
+// 상태: 진행 중 작업 집계.
 async function busy<T>(operation: () => Promise<T>): Promise<T> {
   pendingOperations++;
   useAppStore.setState({ busy: true });
@@ -28,6 +29,7 @@ async function busy<T>(operation: () => Promise<T>): Promise<T> {
     useAppStore.setState({ busy: pendingOperations > 0 });
   }
 }
+// IPC: 최신 조회 반영.
 async function refresh() {
   const request = ++snapshotRequest;
   try {
@@ -37,6 +39,7 @@ async function refresh() {
     reportError(error);
   }
 }
+// 상태: 오류 표시.
 function reportError(error: unknown) {
   useAppStore.setState({ error: String(error) });
 }
@@ -54,6 +57,7 @@ function mergeDetected(
     ).values(),
   ];
 }
+// IPC: CLI 탐지.
 async function discover() {
   const previous = useAppStore.getState().clis;
   try {
@@ -65,12 +69,14 @@ async function discover() {
     reportError(error);
   }
 }
+// IPC: 중복 탐지 병합.
 function detect() {
   detectionRequest ??= busy(discover).finally(() => {
     detectionRequest = null;
   });
   return detectionRequest;
 }
+// IPC: 명령 실행·상태 갱신.
 async function perform(
   command: string,
   args?: Record<string, unknown>,
@@ -95,7 +101,9 @@ export const useAppStore = create<Store>((set) => ({
   refresh,
   detect,
   perform,
+  // 상태: 공통 오류 갱신.
   setError: (error) => set({ error }),
+  // CLI: 같은 종류의 경로 교체.
   addCli: (cli) =>
     set((state) => ({
       clis: [...state.clis.filter((item) => item.kind !== cli.kind), cli],

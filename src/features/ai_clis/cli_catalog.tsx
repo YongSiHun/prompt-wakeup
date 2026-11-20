@@ -3,6 +3,7 @@ import { CliEditor } from "./cli_editor";
 import { useState } from "react";
 import type { CliInfo } from "../../types";
 
+// UI: CLI 목록.
 export function CliCatalog({
   clis,
   busy,
@@ -52,6 +53,7 @@ export function CliCatalog({
   );
 }
 
+// UI: CLI 항목.
 function CliRow({
   cli,
   busy,

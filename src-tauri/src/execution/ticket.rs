@@ -16,6 +16,7 @@ struct SignedTicket {
     payload: String,
     signature: String,
 }
+// 실행: 서명된 요청 준비.
 pub(super) fn prepare(repository: &StorageRepository, schedule: &Schedule, id: &str) -> Result<()> {
     SecurityValidator::input(&schedule.input, false)?;
     let ticket = Ticket {
@@ -33,10 +34,12 @@ pub(super) fn prepare(repository: &StorageRepository, schedule: &Schedule, id: &
     atomic(&repository.run_path(id, "ticket")?, &signed)
 }
 
+// 보안: HMAC 키 구성.
 fn new_mac(repository: &StorageRepository, create: bool) -> Result<Hmac<Sha256>> {
     Hmac::<Sha256>::new_from_slice(&repository.key(create)?).map_err(err)
 }
 
+// I/O: 저장 데이터 읽기.
 pub(super) fn read(repository: &StorageRepository, id: &str) -> Result<Ticket> {
     let bytes = fs::read(repository.run_path(id, "ticket")?).map_err(err)?;
     let signed: SignedTicket = serde_json::from_slice(&bytes).map_err(err)?;
@@ -52,6 +55,7 @@ pub(super) fn read(repository: &StorageRepository, id: &str) -> Result<Ticket> {
     Ok(ticket)
 }
 
+// 실행: 중복 시작 차단.
 pub(super) fn claim(repository: &StorageRepository, id: &str) -> Result<()> {
     let mut claim = OpenOptions::new()
         .write(true)

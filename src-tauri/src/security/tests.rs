@@ -2,6 +2,7 @@ use super::*;
 use crate::test_support::input;
 
 #[test]
+// Test: utc local roundtrip and dst rejection.
 fn utc_local_roundtrip_and_dst_rejection() {
     let directory = tempfile::tempdir().unwrap();
     let mut input = input(directory.path());
@@ -17,6 +18,7 @@ fn utc_local_roundtrip_and_dst_rejection() {
 }
 
 #[test]
+// Test: invalid path and empty prompt rejected.
 fn invalid_path_and_empty_prompt_rejected() {
     let directory = tempfile::tempdir().unwrap();
     let mut input = input(directory.path());

@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { listen, type UnlistenFn, type Event } from "@tauri-apps/api/event";
 import { useAppStore } from "../stores/app_store";
 type Subscription = readonly [string, (event: Event<unknown>) => void];
+// IPC: 백엔드 이벤트 정의.
 function subscriptions(
   navigate: (page: string) => void,
   requestClose: () => void,
@@ -14,6 +15,7 @@ function subscriptions(
     ["close-requested", requestClose],
   ];
 }
+// IPC: 이벤트 등록.
 async function subscribeOne(
   [name, handler]: Subscription,
   register: (cleanup: UnlistenFn) => void,
@@ -24,9 +26,11 @@ async function subscribeOne(
     useAppStore.getState().setError(String(error));
   }
 }
+// IPC: 이벤트 구독·해제.
 function subscribeAll(events: Subscription[]) {
   let disposed = false;
   const cleanup: UnlistenFn[] = [];
+  // 상태: 구독 해제 함수 보관.
   function register(unlisten: UnlistenFn) {
     if (disposed) {
       unlisten();
@@ -40,6 +44,7 @@ function subscribeAll(events: Subscription[]) {
     cleanup.forEach((unlisten) => unlisten());
   };
 }
+// IPC: 초기 조회·이벤트 구독.
 export function useBackend(
   navigate: (page: string) => void,
   requestClose: () => void,

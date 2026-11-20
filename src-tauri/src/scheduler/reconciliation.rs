@@ -6,6 +6,7 @@ use crate::{
 use chrono::{DateTime, Duration, Utc};
 use std::fs;
 
+// I/O: 결과 파일·프로세스 관찰.
 pub fn observe(
     repository: &StorageRepository,
     execution: &ExecutionRecord,
@@ -22,6 +23,7 @@ pub fn observe(
         Ok(None) => probe_claim(repository, execution, now, probe),
     }
 }
+// 상태: 실제 종료 결과 반영.
 fn completed(original: &ExecutionRecord, result: RunResult) -> ExecutionRecord {
     let mut execution = original.clone();
     let success = result.exit_code == Some(0) && result.error.is_none();
@@ -35,11 +37,13 @@ fn completed(original: &ExecutionRecord, result: RunResult) -> ExecutionRecord {
     execution.error = result.error;
     execution
 }
+// 상태: 추적 실패 기록.
 fn unknown(original: &ExecutionRecord, now: DateTime<Utc>, error: String) -> ExecutionRecord {
     let mut execution = original.clone();
     execution.mark_unknown(now, error);
     execution
 }
+// 실행: 래퍼 시작·PID 확인.
 fn probe_claim(
     repository: &StorageRepository,
     execution: &ExecutionRecord,
@@ -60,6 +64,7 @@ fn probe_claim(
         None => expired_claim(repository, execution, now, !path.exists() || claim.is_ok()),
     }
 }
+// 실행: 결과 없는 래퍼 종료 기록.
 fn lost_process(
     execution: &ExecutionRecord,
     now: DateTime<Utc>,
@@ -67,6 +72,7 @@ fn lost_process(
 ) -> Option<ExecutionRecord> {
     (!process_probe::alive(pid)).then(|| unknown(execution, now, "실행 래퍼가 결과를 기록하지 않고 종료되었습니다. 앱 내 터미널 출력과 CLI가 중단되었는지 확인한 후 수동 재실행하세요.".into()))
 }
+// 실행: 시작 시간 초과 처리.
 fn expired_claim(
     repository: &StorageRepository,
     execution: &ExecutionRecord,

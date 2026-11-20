@@ -1,34 +1,23 @@
-pub mod adapters;
 mod version;
 use crate::{
     models::*,
     security::{require, SecurityValidator},
     storage::Result,
 };
-use adapters::{ClaudeAdapter, CodexAdapter, GeminiAdapter};
 use std::{
     path::{Path, PathBuf},
     process::Command,
 };
 pub use version::version;
 
-pub trait AiCliAdapter: Send + Sync {
-    fn detect(&self) -> Option<String>;
-    fn validate(&self, path: &str) -> Result<()>;
-    fn get_version(&self, path: &str) -> Result<String>;
-    fn build_launch_plan(&self, input: &ScheduleInput) -> LaunchPlan;
-}
-pub fn adapter(kind: CliKind) -> &'static dyn AiCliAdapter {
-    match kind {
-        CliKind::Codex => &CodexAdapter,
-        CliKind::Claude => &ClaudeAdapter,
-        CliKind::Gemini => &GeminiAdapter,
-    }
-}
+// CLI: 실행 파일 경로 탐색.
 pub fn find(name: &str) -> Option<String> {
-    let path = which::which(name).ok().or_else(|| fallback_path(name));
-    path.map(|path| path.to_string_lossy().into_owned())
+    which::which(name)
+        .ok()
+        .or_else(|| fallback_path(name))
+        .map(|path| path.to_string_lossy().into_owned())
 }
+// CLI: 기본 경로 탐색.
 fn fallback_path(name: &str) -> Option<PathBuf> {
     #[cfg(windows)]
     let suffixes = [".exe", ".cmd", ".bat"];
@@ -39,6 +28,7 @@ fn fallback_path(name: &str) -> Option<PathBuf> {
         .flat_map(|base| suffixes.map(|suffix| base.join(format!("{name}{suffix}"))))
         .find(|path| path.is_file())
 }
+// CLI: 사용자 설치 경로.
 fn search_directories() -> Vec<PathBuf> {
     let mut paths: Vec<_> = dirs::home_dir()
         .into_iter()
@@ -54,6 +44,7 @@ fn search_directories() -> Vec<PathBuf> {
     paths
 }
 #[cfg(windows)]
+// CLI: OS별 설치 경로.
 fn platform_directories() -> Vec<PathBuf> {
     std::env::var_os("APPDATA")
         .map(PathBuf::from)
@@ -62,15 +53,18 @@ fn platform_directories() -> Vec<PathBuf> {
         .collect()
 }
 #[cfg(target_os = "macos")]
+// CLI: OS별 설치 경로.
 fn platform_directories() -> Vec<PathBuf> {
     ["/opt/homebrew/bin", "/usr/local/bin"]
         .map(PathBuf::from)
         .to_vec()
 }
 #[cfg(not(any(windows, target_os = "macos")))]
+// CLI: OS별 설치 경로.
 fn platform_directories() -> Vec<PathBuf> {
     Vec::new()
 }
+// 검증: CLI 파일·이름.
 pub fn validate_identity(kind: CliKind, path: &str) -> Result<()> {
     SecurityValidator::executable(path)?;
     let stem = Path::new(path)
@@ -82,6 +76,7 @@ pub fn validate_identity(kind: CliKind, path: &str) -> Result<()> {
         &format!("{} 실행 파일을 선택하세요.", kind.name()),
     )
 }
+// CLI: 안전한 명령 구성.
 pub fn command(path: &str, arguments: &[String]) -> Result<Command> {
     SecurityValidator::executable(path)?;
     #[cfg(windows)]
@@ -93,6 +88,7 @@ pub fn command(path: &str, arguments: &[String]) -> Result<Command> {
     Ok(command)
 }
 #[cfg(windows)]
+// OS: 검증된 batch 명령 구성.
 fn batch_command(path: &str, arguments: &[String]) -> Result<Command> {
     use std::os::windows::process::CommandExt;
     require(
@@ -118,14 +114,13 @@ fn batch_command(path: &str, arguments: &[String]) -> Result<Command> {
     Ok(command)
 }
 #[cfg(windows)]
+// 검증: 셸 인자 허용 문자.
 fn safe_argument(character: char) -> bool {
     character.is_ascii_alphanumeric() || " -_".contains(character)
 }
+// CLI: 파일·버전 검사.
 pub fn inspect(kind: CliKind, path: String) -> CliInfo {
-    let adapter = adapter(kind);
-    let result = adapter
-        .validate(&path)
-        .and_then(|_| adapter.get_version(&path));
+    let result = validate_identity(kind, &path).and_then(|_| version(&path));
     CliInfo {
         kind,
         executable_path: path,
@@ -134,6 +129,7 @@ pub fn inspect(kind: CliKind, path: String) -> CliInfo {
         validation_error: result.err(),
     }
 }
+// CLI: 설치 상태 병렬 조회.
 pub fn detect(settings: &Settings) -> Vec<CliInfo> {
     std::thread::scope(|scope| {
         let workers: Vec<_> = CliKind::ALL
@@ -147,15 +143,17 @@ pub fn detect(settings: &Settings) -> Vec<CliInfo> {
             .collect()
     })
 }
+// CLI: 사용자 설정 우선 탐지.
 fn detect_one(kind: CliKind, settings: &Settings) -> CliInfo {
     let path = settings
         .custom_cli_paths
         .get(kind.name())
         .cloned()
-        .or_else(|| adapter(kind).detect())
+        .or_else(|| find(kind.name()))
         .unwrap_or_default();
     inspect(kind, path)
 }
+// CLI: 탐지 실패 결과.
 fn detection_failure(kind: CliKind) -> CliInfo {
     CliInfo {
         kind,
@@ -165,7 +163,13 @@ fn detection_failure(kind: CliKind) -> CliInfo {
         validation_error: Some("CLI 탐지 작업이 중단되었습니다. 다시 탐색하세요.".into()),
     }
 }
-pub fn plan(input: &ScheduleInput, arguments: Vec<String>) -> LaunchPlan {
+// CLI: 종류별 실행 인자 구성.
+pub fn plan(input: &ScheduleInput) -> LaunchPlan {
+    let arguments = match input.cli {
+        CliKind::Codex => vec!["exec".into(), "-".into()],
+        CliKind::Claude => vec!["-p".into()],
+        CliKind::Gemini => vec!["-p".into(), "Execute the task supplied on stdin".into()],
+    };
     LaunchPlan {
         executable: input.cli_path.clone(),
         arguments,

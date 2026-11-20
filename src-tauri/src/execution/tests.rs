@@ -1,4 +1,5 @@
 use super::*;
+// Test: fixture.
 fn fixture(code: i32) -> (tempfile::TempDir, StorageRepository, ScheduleInput) {
     let directory = tempfile::tempdir().unwrap();
     let repository = StorageRepository::at(directory.path().join("data")).unwrap();
@@ -8,6 +9,7 @@ fn fixture(code: i32) -> (tempfile::TempDir, StorageRepository, ScheduleInput) {
     std::fs::write(&input.cli_path, cli_shim()).unwrap();
     (directory, repository, input)
 }
+// Test: cli shim.
 fn cli_shim() -> &'static str {
     if cfg!(windows) {
         "@echo off\r\nnode \"%~dp0fixture.cjs\" %*\r\n"
@@ -15,6 +17,7 @@ fn cli_shim() -> &'static str {
         "#!/bin/sh\nexec node \"$(dirname \"$0\")/fixture.cjs\" \"$@\"\n"
     }
 }
+// Test: prepare.
 fn prepare(repository: &StorageRepository, input: ScheduleInput) -> String {
     let schedule = Schedule {
         id: uuid::Uuid::new_v4().to_string(),
@@ -26,6 +29,7 @@ fn prepare(repository: &StorageRepository, input: ScheduleInput) -> String {
     id
 }
 #[test]
+// Test: noninteractive stdin preserves unicode quotes newlines.
 fn noninteractive_stdin_preserves_unicode_quotes_newlines() {
     let (directory, _repository, input) = fixture(0);
     assert_eq!(
@@ -39,6 +43,7 @@ fn noninteractive_stdin_preserves_unicode_quotes_newlines() {
     assert!(!directory.path().join("bad").exists());
 }
 #[test]
+// Test: nonzero exit is recorded without retry.
 fn nonzero_exit_is_recorded_without_retry() {
     let (directory, repository, input) = fixture(7);
     let id = prepare(&repository, input);
@@ -50,6 +55,7 @@ fn nonzero_exit_is_recorded_without_retry() {
     assert!(directory.path().join("received.txt").exists());
 }
 #[test]
+// Test: denied cli exit is not completed.
 fn denied_cli_exit_is_not_completed() {
     let (_directory, _repository, input) = fixture(13);
     assert_eq!(
@@ -58,6 +64,7 @@ fn denied_cli_exit_is_not_completed() {
     );
 }
 #[test]
+// Test: tampered ticket never runs.
 fn tampered_ticket_never_runs() {
     let (directory, repository, input) = fixture(0);
     for field in ["signature", "payload"] {
@@ -73,9 +80,9 @@ fn tampered_ticket_never_runs() {
 }
 
 #[test]
+// Test: output survives completion and repository reopen.
 fn output_survives_completion_and_repository_reopen() {
-    let (_directory, repository, mut input) = fixture(0);
-    input.keep_open = true;
+    let (_directory, repository, input) = fixture(0);
     let id = prepare(&repository, input);
     run_job_at(&repository, &id).unwrap();
     let reopened = StorageRepository::at(repository.root.clone()).unwrap();
@@ -88,6 +95,7 @@ fn output_survives_completion_and_repository_reopen() {
 }
 
 #[test]
+// Test: large stdout and stderr are not truncated.
 fn large_stdout_and_stderr_are_not_truncated() {
     let (directory, repository, input) = fixture(7);
     std::fs::write(directory.path().join("fixture.cjs"),

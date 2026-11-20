@@ -5,6 +5,7 @@ import { ScheduleCard } from "./schedule_card";
 import { ScheduleForm } from "./schedule_form";
 import type { Schedule } from "../../types";
 type Editor = Schedule | "new" | null;
+// UI: 대기 예약 화면.
 export function SchedulePage() {
   const schedules = useAppStore((state) => state.data!.schedules);
   const pending = useMemo(
@@ -15,7 +16,9 @@ export function SchedulePage() {
     [schedules],
   );
   const [editor, setEditor] = useState<Editor>(null);
+  // UI: 새 예약 열기.
   const create = useCallback(() => setEditor("new"), []);
+  // UI: 예약 수정 열기.
   const edit = useCallback((schedule: Schedule) => setEditor(schedule), []);
   return (
     <>
@@ -25,10 +28,16 @@ export function SchedulePage() {
         사용량 제한 해제 시각은 직접 입력합니다. 예약 실패 시 자동 재시도하지
         않습니다.
       </p>
-      <ScheduleEditor editor={editor} onClose={() => setEditor(null)} />
+      {editor && (
+        <ScheduleForm
+          schedule={editor === "new" ? undefined : editor}
+          onClose={() => setEditor(null)}
+        />
+      )}
     </>
   );
 }
+// UI: 다음 예약·개수.
 function ScheduleSummary({ schedules }: { schedules: Schedule[] }) {
   const next = schedules[0];
   return (
@@ -54,6 +63,7 @@ type ListProps = {
   onCreate: () => void;
   onEdit: (schedule: Schedule) => void;
 };
+// UI: 예약 목록.
 function ScheduleList({ schedules, onCreate, onEdit }: ListProps) {
   return (
     <>
@@ -81,6 +91,7 @@ function ScheduleList({ schedules, onCreate, onEdit }: ListProps) {
     </>
   );
 }
+// UI: 빈 예약 안내.
 function EmptySchedules({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="empty">
@@ -89,20 +100,5 @@ function EmptySchedules({ onCreate }: { onCreate: () => void }) {
       <p>작업 폴더와 프롬프트를 정하고, 실행할 시간을 선택하세요.</p>
       <button onClick={onCreate}>첫 예약 만들기</button>
     </div>
-  );
-}
-function ScheduleEditor({
-  editor,
-  onClose,
-}: {
-  editor: Editor;
-  onClose: () => void;
-}) {
-  if (!editor) return null;
-  return (
-    <ScheduleForm
-      schedule={editor === "new" ? undefined : editor}
-      onClose={onClose}
-    />
   );
 }

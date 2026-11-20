@@ -11,12 +11,15 @@ const screens = {
   executions: ExecutionList,
   settings: SettingsPanel,
 };
+// UI: 앱 진입.
 export default function App() {
   const [page, setPage] = useState<Page>("schedules");
+  // UI: 화면 이동.
   const navigate = useCallback((value: string) => {
     if (isPage(value)) setPage(value);
   }, []);
   const [closing, setClosing] = useState(false);
+  // UI: 종료 선택창 열기.
   const requestClose = useCallback(() => setClosing(true), []);
   useBackend(navigate, requestClose);
   return (
@@ -26,6 +29,7 @@ export default function App() {
     </AppShell>
   );
 }
+// UI: 준비된 화면 선택.
 function Screen({ page }: { page: Page }) {
   const ready = useAppStore((state) => state.data !== null);
   if (!ready)

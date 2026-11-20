@@ -2,14 +2,14 @@ use super::*;
 use crate::test_support::input;
 
 #[test]
+// Test: adapters keep prompts out of arguments.
 fn adapters_keep_prompts_out_of_arguments() {
     let directory = tempfile::tempdir().unwrap();
-    let input = input(directory.path());
-    let plans = [
-        crate::ai_cli::adapters::CodexAdapter.build_launch_plan(&input),
-        crate::ai_cli::adapters::ClaudeAdapter.build_launch_plan(&input),
-        crate::ai_cli::adapters::GeminiAdapter.build_launch_plan(&input),
-    ];
+    let mut input = input(directory.path());
+    let plans = CliKind::ALL.map(|kind| {
+        input.cli = kind;
+        plan(&input)
+    });
     assert_adapter_arguments(&plans);
     for plan in plans {
         assert_prompt_delivery(&plan, &input.prompt);
@@ -17,6 +17,7 @@ fn adapters_keep_prompts_out_of_arguments() {
 }
 
 #[test]
+// Test: version detects stub cli.
 fn version_detects_stub_cli() {
     let directory = tempfile::tempdir().unwrap();
     assert!(crate::ai_cli::version(&input(directory.path()).cli_path)
@@ -25,6 +26,7 @@ fn version_detects_stub_cli() {
 }
 
 #[test]
+// Test: verbose version output does not fill the pipe.
 fn verbose_version_output_does_not_fill_the_pipe() {
     let directory = tempfile::tempdir().unwrap();
     let input = input(directory.path());
@@ -39,6 +41,7 @@ fn verbose_version_output_does_not_fill_the_pipe() {
     assert!(version.len() <= 4096);
 }
 
+// Test: assert adapter arguments.
 fn assert_adapter_arguments(plans: &[LaunchPlan; 3]) {
     assert_eq!(plans[0].arguments, vec!["exec", "-"]);
     assert_eq!(plans[1].arguments, vec!["-p"]);
@@ -48,6 +51,7 @@ fn assert_adapter_arguments(plans: &[LaunchPlan; 3]) {
     );
 }
 
+// Test: assert prompt delivery.
 fn assert_prompt_delivery(plan: &LaunchPlan, prompt: &str) {
     assert!(!plan.arguments.iter().any(|argument| argument == prompt));
 }

@@ -1,5 +1,6 @@
 use crate::storage::{err, Result};
 
+// 실행: 작업 프로세스 시작.
 pub fn launch(id: &str) -> Result<()> {
     uuid::Uuid::parse_str(id).map_err(|_| "실행 ID 오류")?;
     let runner = std::env::current_exe().map_err(err)?;

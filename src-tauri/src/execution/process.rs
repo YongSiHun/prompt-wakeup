@@ -9,9 +9,10 @@ use std::{
     process::{ExitStatus, Stdio},
 };
 
+// CLI: stdin 전달·출력 저장.
 pub(super) fn execute(input: &ScheduleInput, output: &fs::File) -> Result<Option<i32>> {
     SecurityValidator::input(input, false)?;
-    let plan = crate::ai_cli::adapter(input.cli).build_launch_plan(input);
+    let plan = crate::ai_cli::plan(input);
     let mut command = crate::ai_cli::command(&plan.executable, &plan.arguments)?;
     command
         .current_dir(&plan.working_directory)
@@ -34,6 +35,7 @@ pub(super) fn execute(input: &ScheduleInput, output: &fs::File) -> Result<Option
     })
 }
 
+// 검증: 정상 종료 시 입력 전달 확인.
 fn validate_delivery(status: ExitStatus, delivered: std::io::Result<()>) -> Result<()> {
     if status.success() {
         delivered.map_err(err)?;

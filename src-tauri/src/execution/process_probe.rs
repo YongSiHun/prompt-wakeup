@@ -18,6 +18,7 @@ pub fn alive(pid: u32) -> bool {
     }
 }
 #[cfg(unix)]
+// OS: 프로세스 생존 확인.
 pub fn alive(pid: u32) -> bool {
     std::process::Command::new("/bin/kill")
         .args(["-0", &pid.to_string()])

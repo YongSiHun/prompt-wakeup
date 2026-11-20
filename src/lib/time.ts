@@ -1,8 +1,11 @@
+// 변환: 로컬 시각 보정.
 function localDate(date: Date): Date {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60000);
 }
+// 변환: 날짜→입력 문자열.
 export const localInput = (date: Date) =>
   localDate(date).toISOString().slice(0, 19);
+// 검증: 로컬 시각→UTC.
 export function utcFromLocal(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime()) || localInput(date) !== value)
@@ -21,8 +24,10 @@ const dateTimeFormat = new Intl.DateTimeFormat("ko-KR", {
   second: "2-digit",
   hour12: false,
 });
+// 변환: 표시용 날짜·시간.
 export const formatTime = (value: string) =>
   dateTimeFormat.format(localDate(new Date(value)));
+// 변환: 남은 시간.
 export function remaining(value: string, now: number): string {
   const seconds = Math.ceil((new Date(value).getTime() - now) / 1000);
   if (seconds <= 0) return "실행 시각 도달";

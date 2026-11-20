@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 
 pub struct SecurityValidator;
 impl SecurityValidator {
+    // 검증: 절대 경로·실행 권한.
     pub fn executable(path: &str) -> Result<PathBuf> {
         require(
             !path.contains(['\0', '\n', '\r']),
@@ -19,6 +20,7 @@ impl SecurityValidator {
         executable_permission(path)?;
         Ok(path.to_path_buf())
     }
+    // 검증: 예약 입력.
     pub fn input(input: &ScheduleInput, future: bool) -> Result<()> {
         validate_content(input)?;
         validate_directory(input)?;
@@ -31,9 +33,11 @@ impl SecurityValidator {
     }
 }
 
+// 검증: 조건·오류 변환.
 pub fn require(valid: bool, message: &str) -> Result<()> {
     valid.then_some(()).ok_or_else(|| message.to_owned())
 }
+// 검증: 이름·프롬프트 범위.
 fn validate_content(input: &ScheduleInput) -> Result<()> {
     require(
         !input.name.trim().is_empty() && input.name.len() <= 300,
@@ -47,6 +51,7 @@ fn validate_content(input: &ScheduleInput) -> Result<()> {
         "프롬프트는 필수이며 1MB 이하, NUL 문자를 포함할 수 없습니다.",
     )
 }
+// 검증: 작업 폴더.
 fn validate_directory(input: &ScheduleInput) -> Result<()> {
     let path = Path::new(&input.working_directory);
     require(
@@ -56,16 +61,19 @@ fn validate_directory(input: &ScheduleInput) -> Result<()> {
     validate_batch_directory(input)
 }
 #[cfg(windows)]
+// OS: batch UNC 경로 차단.
 fn validate_batch_directory(input: &ScheduleInput) -> Result<()> {
     let unc =
         input.working_directory.starts_with("\\\\") || input.working_directory.starts_with("//");
     require(!(is_batch(&input.cli_path) && unc), "Windows batch CLI는 UNC 작업 폴더를 지원하지 않습니다. 로컬 폴더 또는 native CLI를 선택하세요.")
 }
 #[cfg(not(windows))]
+// OS: batch UNC 경로 차단.
 fn validate_batch_directory(_: &ScheduleInput) -> Result<()> {
     Ok(())
 }
 #[cfg(unix)]
+// OS: 실행 권한 확인.
 fn executable_permission(path: &Path) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
     require(
@@ -74,9 +82,11 @@ fn executable_permission(path: &Path) -> Result<()> {
     )
 }
 #[cfg(not(unix))]
+// OS: 실행 권한 확인.
 fn executable_permission(_: &Path) -> Result<()> {
     Ok(())
 }
+// 검증: 시간대·DST·UTC 일치.
 fn validate_time(input: &ScheduleInput) -> Result<()> {
     let timezone: chrono_tz::Tz = input
         .timezone
@@ -93,6 +103,7 @@ fn validate_time(input: &ScheduleInput) -> Result<()> {
         LocalResult::None => Err("존재하지 않는 로컬 시각입니다. 다른 시각을 선택하세요.".into()),
     }
 }
+// 검증: batch 확장자.
 pub fn is_batch(path: &str) -> bool {
     let extension = Path::new(path)
         .extension()

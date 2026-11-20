@@ -8,13 +8,9 @@ import { CliSelect } from "../ai_clis/cli_select";
 import { CliEditor } from "../ai_clis/cli_editor";
 import { availableClis } from "../ai_clis/cli_service";
 import { ScheduleTimeField } from "./schedule_time_field";
-import {
-  initialDraft,
-  buildInput,
-  nextScheduleNumber,
-  type ScheduleDraft,
-} from "./schedule_draft";
+import { initialDraft, buildInput, type ScheduleDraft } from "./schedule_draft";
 
+// UI: 예약 입력·저장.
 export function ScheduleForm({
   schedule,
   onClose,
@@ -29,10 +25,6 @@ export function ScheduleForm({
   const [addingCli, setAddingCli] = useState(false);
   const [draft, setDraft] = useState(() => {
     const initial = initialDraft(schedule, settings);
-    if (!schedule) {
-      const data = useAppStore.getState().data!;
-      initial.name = "새 예약 작업 " + nextScheduleNumber(data.executions);
-    }
     if (
       !schedule &&
       !availableClis(clis).some((cli) => cli.kind === initial.cli)
@@ -40,27 +32,19 @@ export function ScheduleForm({
       initial.cli = "";
     return initial;
   });
+  // 상태: 입력값 갱신.
   const update = <K extends keyof ScheduleDraft>(
     key: K,
     value: ScheduleDraft[K],
   ) => setDraft((current) => ({ ...current, [key]: value }));
+  // IPC: 입력 검증·저장.
   async function submit(event: FormEvent) {
     event.preventDefault();
     const store = useAppStore.getState();
     try {
-      const input = buildInput(draft, clis);
-      input.name = input.name.trim();
-      if (
-        store.data!.schedules.some(
-          (item) => item.id !== schedule?.id && item.name.trim() === input.name,
-        )
-      )
-        throw new Error(
-          "이미 사용 중인 예약 작업 이름입니다. 다른 이름을 입력하세요.",
-        );
       const saved = await store.perform("save_schedule", {
         id: schedule?.id ?? null,
-        input,
+        input: buildInput(draft, clis),
       });
       if (saved) onClose();
     } catch (error) {

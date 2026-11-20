@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// 진입: 앱·실행 래퍼 분기.
 fn main() {
     let arguments: Vec<String> = std::env::args().skip(1).collect();
     match arguments.as_slice() {
@@ -10,6 +11,7 @@ fn main() {
         }
     }
 }
+// 실행: 예약 작업 래퍼.
 fn run_job(id: &str) {
     if let Err(error) = prompt_wakeup::execution::run_job(id) {
         eprintln!("PromptWakeup: {error}");

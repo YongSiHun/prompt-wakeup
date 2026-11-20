@@ -14,6 +14,7 @@ pub enum ScheduleStatus {
     Missed,
 }
 impl ScheduleStatus {
+    // 상태: 실행 중 여부.
     pub fn is_running(self) -> bool {
         matches!(self, Self::Launching | Self::Launched)
     }
@@ -39,6 +40,7 @@ pub enum CliKind {
 }
 impl CliKind {
     pub const ALL: [Self; 3] = [Self::Codex, Self::Claude, Self::Gemini];
+    // 변환: CLI 이름.
     pub fn name(self) -> &'static str {
         match self {
             Self::Codex => "codex",
@@ -53,14 +55,11 @@ pub struct ScheduleInput {
     pub name: String,
     pub cli: CliKind,
     pub cli_path: String,
-    // Serialized legacy selection; execution always uses the embedded runner.
-    pub terminal: TerminalInfo,
     pub working_directory: String,
     pub prompt: String,
     pub scheduled_at: DateTime<Utc>,
     pub timezone: String,
     pub local_time: String,
-    pub keep_open: bool,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Schedule {
@@ -68,17 +67,6 @@ pub struct Schedule {
     #[serde(flatten)]
     pub input: ScheduleInput,
     pub status: ScheduleStatus,
-}
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct TerminalInfo {
-    pub id: String,
-    pub name: String,
-    pub kind: String,
-    pub executable_path: String,
-    pub detected_automatically: bool,
-    pub installed: bool,
-    pub supported: bool,
-    pub validation_error: Option<String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CliInfo {
@@ -90,6 +78,8 @@ pub struct CliInfo {
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ExecutionRecord {
+    #[serde(default)]
+    pub prompt: Option<String>,
     pub id: String,
     pub schedule_id: String,
     pub name: String,
@@ -101,12 +91,14 @@ pub struct ExecutionRecord {
     pub error: Option<String>,
 }
 impl ExecutionRecord {
+    // 상태: 초기값 구성.
     pub fn new(schedule: &Schedule) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             schedule_id: schedule.id.clone(),
             name: schedule.input.name.clone(),
             cli: schedule.input.cli,
+            prompt: Some(schedule.input.prompt.clone()),
             started_at: Utc::now(),
             ended_at: None,
             status: ExecutionStatus::Launching,
@@ -114,6 +106,7 @@ impl ExecutionRecord {
             error: None,
         }
     }
+    // 상태: 추적 중 여부.
     pub fn active(&self) -> bool {
         self.ended_at.is_none()
             && matches!(
@@ -121,6 +114,7 @@ impl ExecutionRecord {
                 ExecutionStatus::Launching | ExecutionStatus::Launched | ExecutionStatus::Unknown
             )
     }
+    // 변환: 실행→예약 상태.
     pub fn schedule_status(&self) -> ScheduleStatus {
         match self.status {
             ExecutionStatus::Completed => ScheduleStatus::Completed,
@@ -129,6 +123,7 @@ impl ExecutionRecord {
             _ => ScheduleStatus::Failed,
         }
     }
+    // 상태: 종료 추적 실패 기록.
     pub fn mark_unknown(&mut self, now: DateTime<Utc>, error: String) {
         self.status = ExecutionStatus::Unknown;
         self.ended_at = Some(now);
@@ -140,27 +135,22 @@ impl ExecutionRecord {
 #[serde(default)]
 pub struct Settings {
     pub custom_cli_paths: BTreeMap<String, String>,
-    pub custom_terminals: Vec<TerminalInfo>,
     pub default_cli: Option<CliKind>,
-    pub default_terminal: String,
     pub default_directory: String,
     pub theme: String,
-    pub keep_open: bool,
     pub retention_days: u32,
 }
 impl Default for Settings {
+    // 설정: 기본값.
     fn default() -> Self {
         Self {
             custom_cli_paths: BTreeMap::new(),
-            custom_terminals: Vec::new(),
             default_cli: None,
-            default_terminal: "embedded".into(),
             default_directory: dirs::home_dir()
                 .unwrap_or_default()
                 .to_string_lossy()
                 .into(),
             theme: "system".into(),
-            keep_open: false,
             retention_days: 90,
         }
     }

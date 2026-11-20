@@ -7,9 +7,11 @@ export const pages = {
   settings: { label: "설정" },
 };
 export type Page = keyof typeof pages;
+// 검증: 화면 ID.
 export function isPage(value: string): value is Page {
   return Object.hasOwn(pages, value);
 }
+// UI: 탐색·테마·알림.
 export function AppShell({
   page,
   navigate,
@@ -53,6 +55,7 @@ export function AppShell({
     </div>
   );
 }
+// UI: 오류·경고.
 function Alerts() {
   const error = useAppStore((state) => state.error);
   const warnings = useAppStore((state) => state.data?.warnings);

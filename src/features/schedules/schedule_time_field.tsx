@@ -1,3 +1,4 @@
+// UI: 날짜·시분초 입력.
 export function ScheduleTimeField({
   value,
   onChange,
@@ -7,6 +8,7 @@ export function ScheduleTimeField({
 }) {
   const [date, time = ""] = value.split("T");
   const parts = time.split(":");
+  // 검증: 시분초 숫자 입력.
   function updateTime(index: number, part: string) {
     if (!/^\d{0,2}$/.test(part)) return;
     const next = [...parts];

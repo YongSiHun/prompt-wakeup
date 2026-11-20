@@ -9,6 +9,7 @@ pub mod storage;
 pub mod tray;
 use tauri::Manager;
 
+// 실행: 앱·예약 감시.
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(runtime::show_existing))
@@ -32,6 +33,7 @@ pub fn run() {
         .expect("PromptWakeup 초기화 실패")
         .run(runtime::app_event);
 }
+// 초기화: 저장소·트레이·스케줄러.
 fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Error>> {
     let repository =
         storage::StorageRepository::open().map_err(|error| startup_error(app, error))?;
@@ -42,6 +44,7 @@ fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error::Er
     runtime::start(app.handle().clone(), manager);
     Ok(())
 }
+// UI: 시작 오류 안내.
 fn startup_error(app: &tauri::App, message: String) -> Box<dyn std::error::Error> {
     use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
     app.dialog()

@@ -1,4 +1,4 @@
-use super::ManagerState;
+use super::{blocking, ManagerState};
 use crate::{
     models::Snapshot,
     scheduler::SchedulerManager,
@@ -7,12 +7,14 @@ use crate::{
 use std::sync::Arc;
 
 #[tauri::command]
+// 조회: 현재 상태 복제.
 pub fn snapshot(manager: ManagerState<'_>) -> Result<Snapshot> {
     manager.snapshot()
 }
 
 #[tauri::command]
-pub fn close_app(app: tauri::AppHandle, action: String) -> Result<()> {
+// IPC: 트레이·종료 처리.
+pub async fn close_app(app: tauri::AppHandle, action: String) -> Result<()> {
     use tauri::Manager;
     match action.as_str() {
         "tray" => app
@@ -21,7 +23,8 @@ pub fn close_app(app: tauri::AppHandle, action: String) -> Result<()> {
             .hide()
             .map_err(err),
         "quit" => {
-            app.state::<Arc<SchedulerManager>>().stop()?;
+            let manager = app.state::<Arc<SchedulerManager>>().inner().clone();
+            blocking(move || manager.stop()).await?;
             app.exit(0);
             Ok(())
         }

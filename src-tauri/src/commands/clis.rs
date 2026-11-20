@@ -5,12 +5,14 @@ use crate::{
 };
 
 #[tauri::command]
+// IPC: CLI 탐지.
 pub async fn detect_clis(manager: ManagerState<'_>) -> Result<Vec<CliInfo>> {
     let settings = manager.current_settings()?;
     blocking(move || Ok(crate::ai_cli::detect(&settings))).await
 }
 
 #[tauri::command]
+// IPC: CLI 경로 검증·등록.
 pub async fn manual_cli(manager: ManagerState<'_>, kind: CliKind, path: String) -> Result<CliInfo> {
     let manager = manager.inner().clone();
     blocking(move || {

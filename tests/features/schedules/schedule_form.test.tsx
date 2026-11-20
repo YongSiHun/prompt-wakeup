@@ -35,7 +35,6 @@ it("여러 줄 프롬프트와 실행 시각을 저장한다", async () => {
     input: expect.objectContaining({
       name: "예약 테스트",
       prompt: '한글 " $() &\n두 번째 줄',
-      keep_open: false,
       scheduled_at: expect.any(String),
     }),
   });
@@ -86,7 +85,7 @@ it("CLI 기본 선택 없이 제목을 미리 채우고 실제 사용 가능한 
   render(<ScheduleForm onClose={() => {}} />);
   expect((screen.getByLabelText("AI CLI") as HTMLSelectElement).value).toBe("");
   expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
-    "새 예약 작업 1",
+    "새 예약 작업",
   );
   expect(screen.getByRole("option", { name: /codex · C:/ })).toBeTruthy();
   expect(screen.queryByRole("option", { name: /claude/ })).toBeNull();
@@ -161,7 +160,7 @@ it("감지된 CLI가 없어도 예약 폼에서 CLI를 등록하고 경로를 �
   expect(useAppStore.getState().perform).not.toHaveBeenCalled();
 });
 
-it("실행 이력이 없으면 취소된 예약이 남아 있어도 1부터 시작한다", () => {
+it("취소된 예약과 무관하게 번호 없는 기본 이름을 표시한다", () => {
   const data = useAppStore.getState().data!;
   useAppStore.setState({
     data: {
@@ -173,10 +172,10 @@ it("실행 이력이 없으면 취소된 예약이 남아 있어도 1부터 시�
   });
   render(<ScheduleForm onClose={() => {}} />);
   expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
-    "새 예약 작업 1",
+    "새 예약 작업",
   );
 });
-it("다른 예약과 이름이 겹치면 저장하지 않는다", async () => {
+it("다른 예약과 같은 이름도 공백을 정리해서 저장한다", async () => {
   const data = useAppStore.getState().data!;
   useAppStore.setState({
     data: {
@@ -190,9 +189,13 @@ it("다른 예약과 이름이 겹치면 저장하지 않는다", async () => {
   });
   fireEvent.click(screen.getByRole("button", { name: "예약 저장" }));
   await waitFor(() =>
-    expect(useAppStore.getState().error).toContain("이미 사용 중인"),
+    expect(useAppStore.getState().perform).toHaveBeenCalledWith(
+      "save_schedule",
+      expect.objectContaining({
+        input: expect.objectContaining({ name: "중복 이름" }),
+      }),
+    ),
   );
-  expect(useAppStore.getState().perform).not.toHaveBeenCalled();
 });
 it("빈 프롬프트 안내를 표시하고 입력하면 해제한다", () => {
   render(<ScheduleForm onClose={() => {}} />);
@@ -219,60 +222,17 @@ it("수정 취소 시 저장하지 않은 내용의 유실을 확인한다", () 
   expect(close).toHaveBeenCalledOnce();
 });
 
-it.each([
-  { schedules: [], executions: [], expected: 1 },
-  {
-    schedules: [makeSchedule({ name: "새 예약 작업 10" })],
-    executions: [],
-    expected: 1,
-  },
-  {
-    schedules: [],
-    executions: [makeExecution({ name: "새 예약 작업 10" })],
-    expected: 11,
-  },
-  {
-    schedules: [makeSchedule({ name: "새 예약 작업 30" })],
-    executions: [makeExecution({ name: "새 예약 작업 10" })],
-    expected: 11,
-  },
-  {
-    schedules: [makeSchedule({ name: "직접 정한 이름" })],
-    executions: [],
-    expected: 1,
-  },
-])(
-  "현재 저장된 실행 이력만으로 다음 번호 $expected 를 채운다",
-  ({ schedules, executions, expected }) => {
-    const data = useAppStore.getState().data!;
-    useAppStore.setState({ data: { ...data, schedules, executions } });
-    render(<ScheduleForm onClose={() => {}} />);
-    expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
-      "새 예약 작업 " + expected,
-    );
-  },
-);
-
-it("이력을 전부 삭제하면 누적 번호가 남아 있어도 1부터 다시 시작한다", () => {
+it("예약과 실행 이력에 같은 이름이 있어도 번호를 붙이지 않는다", () => {
   const data = useAppStore.getState().data!;
   useAppStore.setState({
     data: {
       ...data,
-      schedules: [makeSchedule({ name: "새 예약 작업 30" })],
-      executions: [makeExecution({ name: "새 예약 작업 10" })],
-      ...{ schedule_sequence: 50 },
+      schedules: [makeSchedule({ name: "새 예약 작업" })],
+      executions: [makeExecution({ name: "새 예약 작업 50" })],
     },
-  });
-  const form = render(<ScheduleForm onClose={() => {}} />);
-  expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
-    "새 예약 작업 11",
-  );
-  form.unmount();
-  useAppStore.setState({
-    data: { ...useAppStore.getState().data!, executions: [] },
   });
   render(<ScheduleForm onClose={() => {}} />);
   expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
-    "새 예약 작업 1",
+    "새 예약 작업",
   );
 });

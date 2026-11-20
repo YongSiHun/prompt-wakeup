@@ -5,18 +5,18 @@ import { useAppStore } from "../../stores/app_store";
 import { CliSelect } from "../ai_clis/cli_select";
 import { availableClis } from "../ai_clis/cli_service";
 import type { Settings } from "../../types";
+// UI: 기본 설정·CLI.
 export function SettingsPanel() {
   const store = useAppStore.getState();
   const clis = useAppStore((state) => state.clis);
   const busy = useAppStore((state) => state.busy);
-  const [settings, setSettings] = useState<Settings>({
-    ...store.data!.settings,
-  });
+  const [settings, setSettings] = useState<Settings>(store.data!.settings);
   const defaultCli = availableClis(clis).some(
     (cli) => cli.kind === settings.default_cli,
   )
     ? settings.default_cli
     : null;
+  // 상태: 입력값 갱신.
   const update = <K extends keyof Settings>(key: K, value: Settings[K]) =>
     setSettings((current) => ({ ...current, [key]: value }));
   return (

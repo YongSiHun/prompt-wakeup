@@ -8,16 +8,6 @@ export type Status =
   | "failed"
   | "canceled"
   | "missed";
-export interface TerminalInfo {
-  id: string;
-  name: string;
-  kind: string;
-  executable_path: string;
-  detected_automatically: boolean;
-  installed: boolean;
-  supported: boolean;
-  validation_error: string | null;
-}
 export interface CliInfo {
   kind: CliKind;
   executable_path: string;
@@ -29,19 +19,18 @@ export interface ScheduleInput {
   name: string;
   cli: CliKind;
   cli_path: string;
-  terminal: TerminalInfo;
   working_directory: string;
   prompt: string;
   scheduled_at: string;
   timezone: string;
   local_time: string;
-  keep_open: boolean;
 }
 export interface Schedule extends ScheduleInput {
   id: string;
   status: Status;
 }
 export interface ExecutionRecord {
+  prompt: string | null;
   id: string;
   schedule_id: string;
   name: string;
@@ -57,12 +46,9 @@ export interface ExecutionRecord {
 }
 export interface Settings {
   custom_cli_paths: Record<string, string>;
-  custom_terminals: TerminalInfo[];
   default_cli: CliKind | null;
-  default_terminal: string;
   default_directory: string;
   theme: "system" | "light" | "dark";
-  keep_open: boolean;
   retention_days: number;
 }
 export interface Snapshot {

@@ -1,13 +1,18 @@
 @import "tailwindcss";
 :root {
-  font-family: Inter, "Segoe UI", "Malgun Gothic", sans-serif;
-  color: #202635;
+  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+  color: var(--ink);
   background: #f5f6fa;
   font-synthesis: none;
-  font-size: 14px;
+  font-size: 16px;
+  --text-sm: 0.9375rem;
+  --text-md: 1rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --font-mono: Consolas, "Courier New", monospace;
   line-height: 1.5;
   --panel: #fff;
-  --muted: #697386;
+  --muted: #596579;
   --border: #e5e8ef;
   --soft: #eef0fb;
   --ink: #202635;
@@ -35,9 +40,9 @@ button {
   background: var(--panel);
   color: var(--ink);
   padding: 9px 13px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   font-weight: 500;
-  min-height: 36px;
+  min-height: 42px;
   border-radius: 8px;
   transition: 0.15s;
 }
@@ -69,7 +74,7 @@ textarea:focus-visible {
   min-height: 100vh;
 }
 aside {
-  width: 164px;
+  width: 184px;
   flex-shrink: 0;
   border-right: 1px solid var(--border);
   padding: 24px 8px;
@@ -103,13 +108,13 @@ main {
   min-width: 0;
 }
 h2 {
-  font-size: 18px;
+  font-size: var(--text-xl);
   font-weight: 650;
   margin: 0;
 }
 h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 .stats {
@@ -127,16 +132,16 @@ h3 {
 .stats small {
   display: block;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
   margin-bottom: 12px;
 }
 .stats strong {
-  font-size: 18px;
+  font-size: var(--text-lg);
   letter-spacing: -0.4px;
 }
 .stats em {
   font-style: normal;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   margin-left: 7px;
 }
@@ -151,7 +156,7 @@ h3 {
 .section-heading small {
   margin-left: 8px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 .schedule-list {
   display: flex;
@@ -172,13 +177,13 @@ h3 {
 }
 .card-title h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--text-md);
   overflow-wrap: anywhere;
 }
 .badge {
   border-radius: 5px;
   padding: 5px 8px;
-  font-size: 11px;
+  font-size: var(--text-sm);
   white-space: nowrap;
   background: var(--soft);
   color: var(--muted);
@@ -205,7 +210,7 @@ h3 {
   gap: 9px;
   margin: 15px 0 22px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
 }
 .meta span {
   overflow: hidden;
@@ -225,12 +230,12 @@ h3 {
   padding-top: 17px;
 }
 time {
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 small {
   display: block;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--text-sm);
   margin-top: 5px;
 }
 .actions {
@@ -240,12 +245,12 @@ small {
   align-items: center;
 }
 .actions button {
-  font-size: 12px;
+  font-size: var(--text-sm);
   padding: 8px 12px;
 }
 .hint {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
   line-height: 1.9;
   margin: 19px 0;
 }
@@ -256,15 +261,15 @@ small {
   border: 1px dashed var(--border);
   border-radius: var(--radius);
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 .empty h3 {
   color: var(--ink);
-  font-size: 18px;
+  font-size: var(--text-lg);
   margin-top: 12px;
 }
 .empty-icon {
-  font-size: 45px;
+  font-size: 2.75rem;
   color: #9b99da;
 }
 .empty button {
@@ -292,7 +297,7 @@ small {
 }
 label {
   display: block;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   margin-bottom: 17px;
 }
@@ -335,7 +340,7 @@ footer {
   border-radius: 9px;
   padding: 15px;
   margin-bottom: 15px;
-  font-size: 13px;
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
   position: relative;
   z-index: 20;
@@ -368,7 +373,7 @@ footer {
   border: 1px solid var(--border);
   background: var(--panel);
   border-radius: 9px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .detect .hint {
   margin: 0;
@@ -378,7 +383,7 @@ footer {
 }
 .detect code {
   width: 100%;
-  font-size: 10px;
+  font-size: var(--text-sm);
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -388,7 +393,7 @@ pre {
   background: var(--soft);
   padding: 18px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 html[data-theme="dark"] {
   --panel: #1b2130;
@@ -471,14 +476,31 @@ html[data-theme="dark"] {
 }
 .terminal-heading {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   padding: var(--space);
 }
 .terminal-heading h3 {
-  margin: 0 0 6px;
+  margin: 0;
   overflow-wrap: anywhere;
+}
+.execution-prompt {
+  padding: 0 var(--space) var(--space);
+}
+.execution-prompt h4 {
+  margin: 0 0 8px;
+}
+.execution-prompt pre {
+  margin: 0;
+  padding: 12px;
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: var(--text-sm) / 1.65 var(--font-mono);
 }
 .terminal-output {
   margin: 0;
@@ -489,10 +511,7 @@ html[data-theme="dark"] {
   overflow-wrap: anywhere;
   background: #10141e;
   color: #e2e8f0;
-  font:
-    13px/1.65 Consolas,
-    "Courier New",
-    monospace;
+  font: var(--text-sm) / 1.65 var(--font-mono);
   text-align: left;
 }
 .execution-terminal footer {
@@ -502,7 +521,7 @@ html[data-theme="dark"] {
   color: var(--muted);
   justify-content: flex-start;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
 }
 
@@ -522,7 +541,7 @@ html[data-theme="dark"] {
 .execution-file code {
   display: block;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--text-sm);
   color: var(--muted);
   overflow-wrap: anywhere;
   user-select: text;
@@ -545,7 +564,7 @@ html[data-theme="dark"] {
   margin: 0 0 17px;
   min-width: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .time-fields {
   display: grid;
@@ -563,4 +582,24 @@ html[data-theme="dark"] {
   .time-fields label:first-child {
     grid-column: 1 / -1;
   }
+}
+
+.page-heading {
+  margin-bottom: var(--space);
+}
+.page-heading .hint {
+  margin: 0;
+}
+.execution-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.terminal-heading > div:first-child {
+  min-width: 0;
+}
+pre,
+code {
+  font-family: var(--font-mono);
 }

@@ -62,3 +62,25 @@ it("화면을 떠나면 출력 갱신 타이머를 정리한다", async () => {
   unmount();
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it("다른 기록으로 전환하면 이전 출력을 지우고 늦은 응답을 무시한다", async () => {
+  const { deferred } = await import("../../support/deferred");
+  const oldRequest = deferred<string>();
+  const newRequest = deferred<string>();
+  vi.mocked(invoke)
+    .mockReturnValueOnce(oldRequest.promise)
+    .mockReturnValueOnce(newRequest.promise);
+  const { result, rerender } = renderHook(useExecutionOutput, {
+    initialProps: makeExecution(),
+  });
+  rerender(makeExecution({ id: "run-2" }));
+  expect(result.current.output).toBe("");
+  await act(async () => {
+    newRequest.resolve("새 작업 결과");
+  });
+  expect(result.current.output).toBe("새 작업 결과");
+  await act(async () => {
+    oldRequest.resolve("이전 작업 결과");
+  });
+  expect(result.current.output).toBe("새 작업 결과");
+});

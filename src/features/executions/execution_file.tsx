@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { ExecutionRecord } from "../../types";
 
+// UI: 출력 파일 위치·열기.
 export function ExecutionFile({ record }: { record: ExecutionRecord }) {
   const [path, setPath] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +20,7 @@ export function ExecutionFile({ record }: { record: ExecutionRecord }) {
       disposed = true;
     };
   }, [record.id]);
+  // IPC: 출력 파일·폴더 열기.
   async function open(folder: boolean) {
     try {
       await invoke("open_execution_output", { id: record.id, folder });

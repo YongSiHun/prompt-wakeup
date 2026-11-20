@@ -1,3 +1,8 @@
+![alt text](docs/captures/image.png)
+![alt text](docs/captures/image-1.png)
+
+![alt text](docs/captures/image-2.png)
+
 # PromptWakeup
 
 AI CLI 예약 실행 앱 · Win/macOS · MIT
