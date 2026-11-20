@@ -32,8 +32,7 @@ export function ScheduleForm({
     if (!schedule) {
       const data = useAppStore.getState().data!;
       initial.name =
-        "새 예약 작업 " +
-        nextScheduleNumber(data.schedules, data.executions);
+        "새 예약 작업 " + nextScheduleNumber(data.schedules, data.executions);
     }
     if (
       !schedule &&
