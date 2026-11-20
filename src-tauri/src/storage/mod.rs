@@ -199,14 +199,10 @@ fn restrict(path: &Path) -> Result<()> {
 #[cfg(windows)]
 fn restrict(path: &Path) -> Result<()> {
     use std::os::windows::process::CommandExt;
-    let user = format!(
-        "{}\\{}",
-        std::env::var("USERDOMAIN").map_err(err)?,
-        std::env::var("USERNAME").map_err(err)?
-    );
+    let user = current_user_sid()?;
     let output = std::process::Command::new("icacls.exe")
         .arg(path)
-        .args(["/inheritance:r", "/grant:r", &format!("{user}:(OI)(CI)F")])
+        .args(["/inheritance:r", "/grant:r", &format!("*{user}:(OI)(CI)F")])
         .creation_flags(0x08000000)
         .output()
         .map_err(err)?;
@@ -214,6 +210,33 @@ fn restrict(path: &Path) -> Result<()> {
         output.status.success(),
         "데이터 폴더 접근 권한 제한에 실패했습니다.",
     )
+}
+
+#[cfg(windows)]
+fn current_user_sid() -> Result<String> {
+    use std::os::windows::process::CommandExt;
+    // Environment variables can describe a different account than the process token.
+    let system = std::env::var("SystemRoot").map_err(err)?;
+    let output = std::process::Command::new(Path::new(&system).join("System32/whoami.exe"))
+        .args(["/user", "/fo", "csv", "/nh"])
+        .creation_flags(0x08000000)
+        .output()
+        .map_err(err)?;
+    crate::security::require(output.status.success(), "실행 계정 조회에 실패했습니다.")?;
+    let identity = String::from_utf8_lossy(&output.stdout);
+    let (_, sid) = identity
+        .trim()
+        .rsplit_once(',')
+        .ok_or("실행 계정 SID가 없습니다.")?;
+    let sid = sid.trim_matches('"');
+    crate::security::require(
+        sid.starts_with("S-1-")
+            && sid[4..]
+                .chars()
+                .all(|value| value.is_ascii_digit() || value == '-'),
+        "실행 계정 SID가 올바르지 않습니다.",
+    )?;
+    Ok(sid.to_owned())
 }
 
 #[cfg(test)]

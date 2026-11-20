@@ -73,3 +73,37 @@ fn legacy_cli_selection_is_preserved() {
     let legacy: Settings = serde_json::from_str(r#"{"default_cli":"claude"}"#).unwrap();
     assert_eq!(legacy.default_cli, Some(CliKind::Claude));
 }
+
+#[cfg(windows)]
+#[test]
+fn storage_uses_process_identity_instead_of_environment() {
+    use std::os::windows::process::CommandExt;
+    const CHILD: &str = "PROMPT_WAKEUP_IDENTITY_TEST_CHILD";
+    if std::env::var_os(CHILD).is_none() {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "storage::tests::storage_uses_process_identity_instead_of_environment",
+            ])
+            .env(CHILD, "1")
+            .env("USERDOMAIN", "nonexistent-domain")
+            .env("USERNAME", "nonexistent-user")
+            .creation_flags(0x08000000)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stdout)
+        );
+        return;
+    }
+
+    let directory = tempfile::tempdir().unwrap();
+    let root = directory.path().join("data");
+    let repository = StorageRepository::at(root.clone()).unwrap();
+    repository.save("test.json", &vec![1]).unwrap();
+    let reopened = StorageRepository::at(root).unwrap();
+    let values: Vec<i32> = reopened.load("test.json", &mut Vec::new()).unwrap();
+    assert_eq!(values, vec![1]);
+}
