@@ -8,10 +8,10 @@ AI CLI 예약 실행 앱 · Win/macOS · MIT
 - 닫기: 트레이 유지 / 종료
 - CLI 설정: 이름 선택·경로 지정·재탐색
 
-![alt text](docs/captures/image.png)
-![alt text](docs/captures/image-1.png)
-![alt text](docs/captures/image-3.png)
-![alt text](docs/captures/image-2.png)
+![PromptWakeup 소개](docs/captures/01-hook.png)
+![PromptWakeup 사용 방법](docs/captures/02-how-to.png)
+![PromptWakeup 작업 효율](docs/captures/03-efficiency.png)
+![Windows 및 macOS 지원](docs/captures/04-windows-macos.png)
 
 ## Stack
 
