@@ -108,17 +108,21 @@ impl ScheduleService {
 mod tests {
     use super::*;
 
-    #[test]
-    fn unique_names_and_monotonic_sequence() {
-        let directory = tempfile::tempdir().unwrap();
-        let mut state = Snapshot {
+    fn empty_snapshot() -> Snapshot {
+        Snapshot {
             schedule_sequence: 0,
             schedules: Vec::new(),
             executions: Vec::new(),
             settings: Settings::default(),
             active: true,
             warnings: Vec::new(),
-        };
+        }
+    }
+
+    #[test]
+    fn unique_names() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut state = empty_snapshot();
         let mut input = crate::test_support::input(directory.path());
         input.name = "새 예약 작업 1".into();
         ScheduleService::upsert(&mut state, None, input.clone()).unwrap();
@@ -134,6 +138,21 @@ mod tests {
         let second = state.schedules[1].id.clone();
         input.name = "새 예약 작업 1".into();
         assert!(ScheduleService::upsert(&mut state, Some(second.clone()), input.clone()).is_err());
+        input.name = "사용자 이름".into();
+        ScheduleService::upsert(&mut state, Some(second.clone()), input.clone()).unwrap();
+    }
+
+    #[test]
+    fn monotonic_sequence_after_deletion_and_restore() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut state = empty_snapshot();
+        let mut input = crate::test_support::input(directory.path());
+        input.name = "새 예약 작업 1".into();
+        ScheduleService::upsert(&mut state, None, input.clone()).unwrap();
+        let id = state.schedules[0].id.clone();
+        input.name = "새 예약 작업 2".into();
+        ScheduleService::upsert(&mut state, None, input.clone()).unwrap();
+        let second = state.schedules[1].id.clone();
         input.name = "사용자 이름".into();
         ScheduleService::upsert(&mut state, Some(second.clone()), input.clone()).unwrap();
         ScheduleService::action(&mut state, &id, "delete").unwrap();
