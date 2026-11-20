@@ -161,7 +161,7 @@ it("감지된 CLI가 없어도 예약 폼에서 CLI를 등록하고 경로를 �
   expect(useAppStore.getState().perform).not.toHaveBeenCalled();
 });
 
-it("취소된 작업을 고려해 다음 번호를 채운다", () => {
+it("실행 이력이 없으면 취소된 예약이 남아 있어도 1부터 시작한다", () => {
   const data = useAppStore.getState().data!;
   useAppStore.setState({
     data: {
@@ -173,7 +173,7 @@ it("취소된 작업을 고려해 다음 번호를 채운다", () => {
   });
   render(<ScheduleForm onClose={() => {}} />);
   expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
-    "새 예약 작업 13",
+    "새 예약 작업 1",
   );
 });
 it("다른 예약과 이름이 겹치면 저장하지 않는다", async () => {
@@ -224,7 +224,7 @@ it.each([
   {
     schedules: [makeSchedule({ name: "새 예약 작업 10" })],
     executions: [],
-    expected: 11,
+    expected: 1,
   },
   {
     schedules: [],
@@ -232,7 +232,7 @@ it.each([
     expected: 11,
   },
   {
-    schedules: [makeSchedule({ name: "새 예약 작업 3" })],
+    schedules: [makeSchedule({ name: "새 예약 작업 30" })],
     executions: [makeExecution({ name: "새 예약 작업 10" })],
     expected: 11,
   },
@@ -242,7 +242,7 @@ it.each([
     expected: 1,
   },
 ])(
-  "현재 저장된 예약과 실행 이력으로 다음 번호 $expected 를 채운다",
+  "현재 저장된 실행 이력만으로 다음 번호 $expected 를 채운다",
   ({ schedules, executions, expected }) => {
     const data = useAppStore.getState().data!;
     useAppStore.setState({ data: { ...data, schedules, executions } });
@@ -258,7 +258,7 @@ it("이력을 전부 삭제하면 누적 번호가 남아 있어도 1부터 다�
   useAppStore.setState({
     data: {
       ...data,
-      schedules: [],
+      schedules: [makeSchedule({ name: "새 예약 작업 30" })],
       executions: [makeExecution({ name: "새 예약 작업 10" })],
       ...{ schedule_sequence: 50 },
     },

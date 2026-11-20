@@ -77,13 +77,10 @@ export function normalizeTime(value: string) {
   return date + "T" + parts.map((part) => part.padStart(2, "0")).join(":");
 }
 
-export function nextScheduleNumber(
-  schedules: Schedule[],
-  executions: ExecutionRecord[],
-): number {
+export function nextScheduleNumber(executions: ExecutionRecord[]): number {
   return (
-    [...schedules, ...executions].reduce((max, schedule) => {
-      const match = /^새 예약 작업 (\d+)$/.exec(schedule.name.trim());
+    executions.reduce((max, execution) => {
+      const match = /^새 예약 작업 (\d+)$/.exec(execution.name.trim());
       return Math.max(max, match ? Number(match[1]) : 0);
     }, 0) + 1
   );
