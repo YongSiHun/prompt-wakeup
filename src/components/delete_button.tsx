@@ -43,6 +43,7 @@ export function DeleteButton({
       </button>
       {confirming && (
         <Modal
+          confirmDismiss={false}
           title="삭제하시겠습니까?"
           onClose={close}
           dismissDisabled={deleting}

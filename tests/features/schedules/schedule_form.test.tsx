@@ -86,7 +86,7 @@ it("CLI 기본 선택 없이 제목을 미리 채우고 실제 사용 가능한 
   render(<ScheduleForm onClose={() => {}} />);
   expect((screen.getByLabelText("AI CLI") as HTMLSelectElement).value).toBe("");
   expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
-    "새 예약 작업",
+    "새 예약 작업 1",
   );
   expect(screen.getByRole("option", { name: /codex · C:/ })).toBeTruthy();
   expect(screen.queryByRole("option", { name: /claude/ })).toBeNull();
@@ -159,4 +159,63 @@ it("감지된 CLI가 없어도 예약 폼에서 CLI를 등록하고 경로를 �
     }),
   ).toBeTruthy();
   expect(useAppStore.getState().perform).not.toHaveBeenCalled();
+});
+
+it("취소된 작업과 저장된 번호를 고려해 다음 번호를 채운다", () => {
+  const data = useAppStore.getState().data!;
+  useAppStore.setState({
+    data: {
+      ...data,
+      schedule_sequence: 8,
+      schedules: [
+        makeSchedule({ name: "새 예약 작업 12", status: "canceled" }),
+      ],
+    },
+  });
+  render(<ScheduleForm onClose={() => {}} />);
+  expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
+    "새 예약 작업 13",
+  );
+});
+it("다른 예약과 이름이 겹치면 저장하지 않는다", async () => {
+  const data = useAppStore.getState().data!;
+  useAppStore.setState({
+    data: {
+      ...data,
+      schedules: [makeSchedule({ id: "other", name: "중복 이름" })],
+    },
+  });
+  render(<ScheduleForm schedule={makeSchedule()} onClose={() => {}} />);
+  fireEvent.change(screen.getByLabelText("작업 이름"), {
+    target: { value: " 중복 이름 " },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "예약 저장" }));
+  await waitFor(() =>
+    expect(useAppStore.getState().error).toContain("이미 사용 중인"),
+  );
+  expect(useAppStore.getState().perform).not.toHaveBeenCalled();
+});
+it("빈 프롬프트 안내를 표시하고 입력하면 해제한다", () => {
+  render(<ScheduleForm onClose={() => {}} />);
+  const prompt = screen.getByLabelText("프롬프트") as HTMLTextAreaElement;
+  fireEvent.invalid(prompt);
+  expect(prompt.validationMessage).toBe("프롬프트를 작성하세요");
+  fireEvent.input(prompt, { target: { value: "작업 실행" } });
+  expect(prompt.validationMessage).toBe("");
+});
+it("수정 취소 시 저장하지 않은 내용의 유실을 확인한다", () => {
+  const close = vi.fn();
+  render(<ScheduleForm schedule={makeSchedule()} onClose={close} />);
+  fireEvent.change(screen.getByLabelText("프롬프트"), {
+    target: { value: "수정 내용" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  expect(close).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("button", { name: "계속 작성" }));
+  expect((screen.getByLabelText("프롬프트") as HTMLTextAreaElement).value).toBe(
+    "수정 내용",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "취소" }));
+  fireEvent.click(screen.getByRole("button", { name: "저장하지 않고 닫기" }));
+  expect(close).toHaveBeenCalledOnce();
 });

@@ -10,10 +10,40 @@ impl ScheduleService {
         crate::ai_cli::adapter(input.cli).get_version(&input.cli_path)?;
         Ok(())
     }
-    pub fn upsert(state: &mut Snapshot, id: Option<String>, input: ScheduleInput) -> Result<()> {
+    pub fn upsert(
+        state: &mut Snapshot,
+        id: Option<String>,
+        mut input: ScheduleInput,
+    ) -> Result<()> {
+        input.name = input.name.trim().to_string();
+        require(!input.name.is_empty(), "작업 이름을 입력하세요.")?;
+        require(
+            !state.schedules.iter().any(|schedule| {
+                Some(&schedule.id) != id.as_ref() && schedule.input.name.trim() == input.name
+            }),
+            "이미 사용 중인 예약 작업 이름입니다. 다른 이름을 입력하세요.",
+        )?;
         match id {
             Some(id) => Self::update(state, &id, input),
             None => {
+                let highest = state
+                    .schedules
+                    .iter()
+                    .filter_map(|schedule| {
+                        schedule
+                            .input
+                            .name
+                            .trim()
+                            .strip_prefix("새 예약 작업 ")
+                            .and_then(|number| number.parse::<u64>().ok())
+                    })
+                    .max()
+                    .unwrap_or(0);
+                state.schedule_sequence = state
+                    .schedule_sequence
+                    .max(highest)
+                    .max(state.schedules.len() as u64)
+                    + 1;
                 state.schedules.push(Schedule {
                     id: uuid::Uuid::new_v4().to_string(),
                     input,
@@ -71,5 +101,47 @@ impl ScheduleService {
     }
     pub fn is_due(schedule: &Schedule, now: chrono::DateTime<chrono::Utc>) -> bool {
         schedule.status == ScheduleStatus::Pending && schedule.input.scheduled_at <= now
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn unique_names_and_monotonic_sequence() {
+        let directory = tempfile::tempdir().unwrap();
+        let mut state = Snapshot {
+            schedule_sequence: 0,
+            schedules: Vec::new(),
+            executions: Vec::new(),
+            settings: Settings::default(),
+            active: true,
+            warnings: Vec::new(),
+        };
+        let mut input = crate::test_support::input(directory.path());
+        input.name = "새 예약 작업 1".into();
+        ScheduleService::upsert(&mut state, None, input.clone()).unwrap();
+        input.name = " 새 예약 작업 1 ".into();
+        assert!(ScheduleService::upsert(&mut state, None, input.clone()).is_err());
+        assert_eq!(state.schedule_sequence, 1);
+        let id = state.schedules[0].id.clone();
+        ScheduleService::upsert(&mut state, Some(id.clone()), input.clone()).unwrap();
+        ScheduleService::action(&mut state, &id, "cancel").unwrap();
+        assert!(ScheduleService::upsert(&mut state, None, input.clone()).is_err());
+        input.name = "새 예약 작업 2".into();
+        ScheduleService::upsert(&mut state, None, input.clone()).unwrap();
+        let second = state.schedules[1].id.clone();
+        input.name = "새 예약 작업 1".into();
+        assert!(ScheduleService::upsert(&mut state, Some(second.clone()), input.clone()).is_err());
+        input.name = "사용자 이름".into();
+        ScheduleService::upsert(&mut state, Some(second.clone()), input.clone()).unwrap();
+        ScheduleService::action(&mut state, &id, "delete").unwrap();
+        ScheduleService::action(&mut state, &second, "delete").unwrap();
+        let serialized = serde_json::to_string(&state).unwrap();
+        let mut restored: Snapshot = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(restored.schedule_sequence, 2);
+        ScheduleService::upsert(&mut restored, None, input).unwrap();
+        assert_eq!(restored.schedule_sequence, 3);
     }
 }

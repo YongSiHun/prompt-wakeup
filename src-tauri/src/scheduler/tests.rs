@@ -34,7 +34,9 @@ fn simultaneous_schedules_remain_independent() {
     let (directory, manager) = setup();
     let input = input(directory.path());
     manager.upsert(None, input.clone()).unwrap();
-    manager.upsert(None, input).unwrap();
+    let mut second = input;
+    second.name = "두 번째 작업".into();
+    manager.upsert(None, second).unwrap();
     let state = manager.snapshot().unwrap();
     assert_eq!(state.schedules.len(), 2);
     assert_ne!(state.schedules[0].id, state.schedules[1].id);
@@ -122,7 +124,9 @@ fn simultaneous_due_jobs_launch_once_each() {
     });
     let input = input(directory.path());
     manager.upsert(None, input.clone()).unwrap();
-    manager.upsert(None, input).unwrap();
+    let mut second = input;
+    second.name = "두 번째 작업".into();
+    manager.upsert(None, second).unwrap();
     let now = DateTime::from_timestamp(Utc::now().timestamp(), 0).unwrap();
     {
         let mut state = manager.state.lock().unwrap();
@@ -256,4 +260,29 @@ fn delete_running_execution_is_rejected() {
         .unwrap();
     assert!(manager.delete_execution(&id).is_err());
     assert_eq!(manager.snapshot().unwrap().executions.len(), 1);
+}
+
+#[test]
+fn duplicate_names_rejected_and_sequence_survives_restart() {
+    let (directory, manager) = setup();
+    let mut first = input(directory.path());
+    first.name = "새 예약 작업 1".into();
+    manager.upsert(None, first.clone()).unwrap();
+    first.name = " 새 예약 작업 1 ".into();
+    assert!(manager.upsert(None, first.clone()).is_err());
+    let saved = manager.snapshot().unwrap().schedules[0].clone();
+    manager
+        .upsert(Some(saved.id.clone()), saved.input.clone())
+        .unwrap();
+    manager.action(saved.id, "cancel").unwrap();
+    assert!(manager.upsert(None, first.clone()).is_err());
+    first.name = "새 예약 작업 2".into();
+    manager.upsert(None, first).unwrap();
+    let reopened = SchedulerManager::open(manager.repository.clone()).unwrap();
+    assert_eq!(reopened.snapshot().unwrap().schedule_sequence, 2);
+    let second = reopened.snapshot().unwrap().schedules[1].clone();
+    let mut renamed = second.input;
+    renamed.name = "사용자 이름".into();
+    reopened.upsert(Some(second.id), renamed).unwrap();
+    assert_eq!(reopened.snapshot().unwrap().schedule_sequence, 2);
 }

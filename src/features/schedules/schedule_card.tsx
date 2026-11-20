@@ -1,5 +1,5 @@
-import { DeleteButton } from "../../components/delete_button";
-import { memo } from "react";
+import { Modal, ModalCancelButton } from "../../components/modal";
+import { memo, useState } from "react";
 import { useAppStore } from "../../stores/app_store";
 import { useNow } from "../../hooks/use_now";
 import { StatusBadge } from "../../components/status_badge";
@@ -56,21 +56,10 @@ function PendingActions({
   schedule,
   onEdit,
 }: Pick<CardProps, "schedule" | "onEdit">) {
-  const busy = useAppStore((state) => state.busy);
-  const perform = useAppStore((state) => state.perform);
   if (schedule.status !== "pending") return null;
   return (
     <>
       <button onClick={() => onEdit(schedule)}>수정</button>
-      <button
-        disabled={busy}
-        onClick={() =>
-          window.confirm("이 예약 작업을 취소할까요?") &&
-          void perform("schedule_action", { id: schedule.id, action: "cancel" })
-        }
-      >
-        취소
-      </button>
     </>
   );
 }
@@ -92,16 +81,73 @@ function IdleActions({ schedule }: { schedule: Schedule }) {
       <button disabled={busy} onClick={() => void runNow(schedule.id)}>
         {schedule.status === "failed" ? "재실행" : "지금 실행"}
       </button>
-      <DeleteButton
-        name={schedule.name + " 예약"}
-        description="예약을 삭제합니다. 실행 이력은 보존됩니다."
-        disabled={busy}
-        onDelete={() =>
-          useAppStore
-            .getState()
-            .perform("schedule_action", { id: schedule.id, action: "delete" })
-        }
-      />
+      <CancelScheduleButton schedule={schedule} disabled={busy} />
+    </>
+  );
+}
+
+function CancelScheduleButton({
+  schedule,
+  disabled,
+}: {
+  schedule: Schedule;
+  disabled: boolean;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [canceling, setCanceling] = useState(false);
+  if (schedule.status !== "pending") return null;
+  async function cancel() {
+    setCanceling(true);
+    try {
+      if (
+        await useAppStore
+          .getState()
+          .perform("schedule_action", { id: schedule.id, action: "cancel" })
+      )
+        setConfirming(false);
+    } catch (error) {
+      useAppStore.getState().setError(String(error));
+    } finally {
+      setCanceling(false);
+    }
+  }
+  return (
+    <>
+      <button
+        className="danger"
+        disabled={disabled || canceling}
+        onClick={() => setConfirming(true)}
+      >
+        취소
+      </button>
+      {confirming && (
+        <Modal
+          title="예약을 취소할까요?"
+          confirmDismiss={false}
+          dismissDisabled={disabled || canceling}
+          onClose={() => setConfirming(false)}
+        >
+          <p>
+            <strong>이 예약 작업을 정말 취소할까요?</strong>
+          </p>
+          <p>{schedule.name}</p>
+          <p className="hint">
+            예약을 취소하면 정해진 시각에 프롬프트가 실행되지 않습니다.
+          </p>
+          <footer>
+            <ModalCancelButton disabled={disabled || canceling} autoFocus>
+              돌아가기
+            </ModalCancelButton>
+            <button
+              className="danger"
+              disabled={disabled || canceling}
+              onClick={() => void cancel()}
+            >
+              {canceling ? "취소 중…" : "예약 취소"}
+            </button>
+          </footer>
+        </Modal>
+      )}
     </>
   );
 }

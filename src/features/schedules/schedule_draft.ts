@@ -75,3 +75,18 @@ export function normalizeTime(value: string) {
   if (parts.length === 2) parts.push("00");
   return date + "T" + parts.map((part) => part.padStart(2, "0")).join(":");
 }
+
+export function nextScheduleNumber(
+  schedules: Schedule[],
+  sequence = 0,
+): number {
+  return (
+    schedules.reduce(
+      (max, schedule) => {
+        const match = /^새 예약 작업 (\d+)$/.exec(schedule.name.trim());
+        return Math.max(max, match ? Number(match[1]) : 0);
+      },
+      Math.max(sequence, schedules.length),
+    ) + 1
+  );
+}

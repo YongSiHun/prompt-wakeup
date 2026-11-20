@@ -18,6 +18,7 @@ export function CloseDialog({ onClose }: { onClose: () => void }) {
   }
   return (
     <Modal
+      confirmDismiss={false}
       title="앱 닫기"
       dismissDisabled={busy}
       onClose={() => {

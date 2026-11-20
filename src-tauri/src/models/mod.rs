@@ -167,6 +167,8 @@ impl Default for Settings {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Snapshot {
+    #[serde(default)]
+    pub schedule_sequence: u64,
     pub schedules: Vec<Schedule>,
     pub executions: Vec<ExecutionRecord>,
     pub settings: Settings,

@@ -6,7 +6,6 @@ beforeEach(() => resetAppStore());
 it.each(["취소", "Escape", "배경"])(
   "%s로 닫을 때 확인하고 거절하면 유지한다",
   (method) => {
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const close = vi.fn();
     render(
       <Modal title="편집" onClose={close}>
@@ -25,10 +24,11 @@ it.each(["취소", "Escape", "배경"])(
       else fireEvent.click(dialog, { clientX: -10, clientY: -10 });
     };
     dismiss();
-    expect(confirm).toHaveBeenCalledOnce();
+    expect(screen.getByText(/저장하지 않은 내용은 사라집니다/)).toBeTruthy();
     expect(close).not.toHaveBeenCalled();
-    confirm.mockReturnValue(true);
+    fireEvent.click(screen.getByRole("button", { name: "계속 작성" }));
     dismiss();
+    fireEvent.click(screen.getByRole("button", { name: "저장하지 않고 닫기" }));
     expect(close).toHaveBeenCalledOnce();
     expect(screen.queryByRole("heading")).toBeNull();
     expect(screen.queryByRole("button", { name: "닫기" })).toBeNull();
