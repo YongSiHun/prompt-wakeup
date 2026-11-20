@@ -2,7 +2,7 @@
 
 ## 수동 빌드
 
-GitHub Actions에서 **Build Windows** 또는 **Build macOS → Run workflow**를 선택합니다. push·PR·태그 생성으로는 실행되지 않습니다.
+GitHub Actions에서 **1. Build Windows** 또는 **2. Build macOS → Run workflow**를 선택합니다. push·PR·태그 생성으로는 실행되지 않습니다.
 
 | 플랫폼            | 빌드 성공 후 다운로드                                             |
 | ----------------- | ----------------------------------------------------------------- |

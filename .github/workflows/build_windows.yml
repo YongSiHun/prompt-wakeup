@@ -1,4 +1,4 @@
-name: Build Windows
+name: 1. Build Windows
 on:
   workflow_dispatch:
 permissions:
