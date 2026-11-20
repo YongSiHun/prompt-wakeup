@@ -4,13 +4,12 @@
 
 GitHub Actions에서 **Build Windows** 또는 **Build macOS → Run workflow**를 선택합니다. push·PR·태그 생성으로는 실행되지 않습니다.
 
-| 플랫폼              | 빌드 성공 후 다운로드                                              |
-| ------------------- | ------------------------------------------------------------------ |
-| Windows x64         | `PromptWakeup-windows-x64-exe` Artifact를 풀면 `PromptWakeup.exe`  |
-| Windows 배포 패키지 | `PromptWakeup-windows-x64-package` Artifact에 안내·체크섬 포함 ZIP |
-| macOS ARM64 / x64   | 아키텍처별 Artifact에 `PromptWakeup.app` 포함 ZIP·체크섬           |
+| 플랫폼            | 빌드 성공 후 다운로드                                             |
+| ----------------- | ----------------------------------------------------------------- |
+| Windows x64       | `PromptWakeup-windows-x64-exe` Artifact를 풀면 `PromptWakeup.exe` |
+| macOS ARM64 / x64 | 아키텍처별 Artifact에 `PromptWakeup.app`만 포함한 ZIP             |
 
-`v*` 태그를 선택하고 `publish_release`를 켠 수동 실행에서만 GitHub Release에 게시합니다. 게시 job에만 쓰기 권한을 부여합니다.
+빌드 결과는 GitHub Actions의 Artifact에서 다운로드합니다. GitHub Release는 직접 만들고 필요한 파일을 첨부합니다. 워크플로는 읽기 권한만 사용합니다.
 
 ## 실행 환경과 데이터
 
