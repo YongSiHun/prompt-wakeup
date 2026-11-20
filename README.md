@@ -1,8 +1,3 @@
-![alt text](docs/captures/image.png)
-![alt text](docs/captures/image-1.png)
-
-![alt text](docs/captures/image-2.png)
-
 # PromptWakeup
 
 AI CLI 예약 실행 앱 · Win/macOS · MIT
@@ -12,6 +7,11 @@ AI CLI 예약 실행 앱 · Win/macOS · MIT
 - 실행: 내장 터미널·출력 저장·이력 삭제
 - 닫기: 트레이 유지 / 종료
 - CLI 설정: 이름 선택·경로 지정·재탐색
+
+![alt text](docs/captures/image.png)
+![alt text](docs/captures/image-1.png)
+![alt text](docs/captures/image-3.png)
+![alt text](docs/captures/image-2.png)
 
 ## Stack
 
