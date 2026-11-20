@@ -263,7 +263,7 @@ fn delete_running_execution_is_rejected() {
 }
 
 #[test]
-fn duplicate_names_rejected_and_sequence_survives_restart() {
+fn duplicate_names_rejected_and_schedules_survive_restart() {
     let (directory, manager) = setup();
     let mut first = input(directory.path());
     first.name = "새 예약 작업 1".into();
@@ -279,10 +279,10 @@ fn duplicate_names_rejected_and_sequence_survives_restart() {
     first.name = "새 예약 작업 2".into();
     manager.upsert(None, first).unwrap();
     let reopened = SchedulerManager::open(manager.repository.clone()).unwrap();
-    assert_eq!(reopened.snapshot().unwrap().schedule_sequence, 2);
+    assert_eq!(reopened.snapshot().unwrap().schedules.len(), 2);
     let second = reopened.snapshot().unwrap().schedules[1].clone();
     let mut renamed = second.input;
     renamed.name = "사용자 이름".into();
     reopened.upsert(Some(second.id), renamed).unwrap();
-    assert_eq!(reopened.snapshot().unwrap().schedule_sequence, 2);
+    assert_eq!(reopened.snapshot().unwrap().schedules.len(), 2);
 }

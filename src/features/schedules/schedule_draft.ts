@@ -1,5 +1,6 @@
 import type {
   Schedule,
+  ExecutionRecord,
   Settings,
   CliInfo,
   CliKind,
@@ -78,15 +79,12 @@ export function normalizeTime(value: string) {
 
 export function nextScheduleNumber(
   schedules: Schedule[],
-  sequence = 0,
+  executions: ExecutionRecord[],
 ): number {
   return (
-    schedules.reduce(
-      (max, schedule) => {
-        const match = /^새 예약 작업 (\d+)$/.exec(schedule.name.trim());
-        return Math.max(max, match ? Number(match[1]) : 0);
-      },
-      Math.max(sequence, schedules.length),
-    ) + 1
+    [...schedules, ...executions].reduce((max, schedule) => {
+      const match = /^새 예약 작업 (\d+)$/.exec(schedule.name.trim());
+      return Math.max(max, match ? Number(match[1]) : 0);
+    }, 0) + 1
   );
 }

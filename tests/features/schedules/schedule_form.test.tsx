@@ -9,7 +9,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
 import { ScheduleForm } from "../../../src/features/schedules/schedule_form";
 import { useAppStore } from "../../../src/stores/app_store";
-import { makeCli, makeSchedule } from "../../support/fixtures";
+import { makeCli, makeExecution, makeSchedule } from "../../support/fixtures";
 import { resetAppStore } from "../../support/app_store";
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
@@ -161,12 +161,11 @@ it("감지된 CLI가 없어도 예약 폼에서 CLI를 등록하고 경로를 �
   expect(useAppStore.getState().perform).not.toHaveBeenCalled();
 });
 
-it("취소된 작업과 저장된 번호를 고려해 다음 번호를 채운다", () => {
+it("취소된 작업을 고려해 다음 번호를 채운다", () => {
   const data = useAppStore.getState().data!;
   useAppStore.setState({
     data: {
       ...data,
-      schedule_sequence: 8,
       schedules: [
         makeSchedule({ name: "새 예약 작업 12", status: "canceled" }),
       ],
@@ -218,4 +217,62 @@ it("수정 취소 시 저장하지 않은 내용의 유실을 확인한다", () 
   fireEvent.click(screen.getByRole("button", { name: "취소" }));
   fireEvent.click(screen.getByRole("button", { name: "저장하지 않고 닫기" }));
   expect(close).toHaveBeenCalledOnce();
+});
+
+it.each([
+  { schedules: [], executions: [], expected: 1 },
+  {
+    schedules: [makeSchedule({ name: "새 예약 작업 10" })],
+    executions: [],
+    expected: 11,
+  },
+  {
+    schedules: [],
+    executions: [makeExecution({ name: "새 예약 작업 10" })],
+    expected: 11,
+  },
+  {
+    schedules: [makeSchedule({ name: "새 예약 작업 3" })],
+    executions: [makeExecution({ name: "새 예약 작업 10" })],
+    expected: 11,
+  },
+  {
+    schedules: [makeSchedule({ name: "직접 정한 이름" })],
+    executions: [],
+    expected: 1,
+  },
+])(
+  "현재 저장된 예약과 실행 이력으로 다음 번호 $expected 를 채운다",
+  ({ schedules, executions, expected }) => {
+    const data = useAppStore.getState().data!;
+    useAppStore.setState({ data: { ...data, schedules, executions } });
+    render(<ScheduleForm onClose={() => {}} />);
+    expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
+      "새 예약 작업 " + expected,
+    );
+  },
+);
+
+it("이력을 전부 삭제하면 누적 번호가 남아 있어도 1부터 다시 시작한다", () => {
+  const data = useAppStore.getState().data!;
+  useAppStore.setState({
+    data: {
+      ...data,
+      schedules: [],
+      executions: [makeExecution({ name: "새 예약 작업 10" })],
+      ...{ schedule_sequence: 50 },
+    },
+  });
+  const form = render(<ScheduleForm onClose={() => {}} />);
+  expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
+    "새 예약 작업 11",
+  );
+  form.unmount();
+  useAppStore.setState({
+    data: { ...useAppStore.getState().data!, executions: [] },
+  });
+  render(<ScheduleForm onClose={() => {}} />);
+  expect((screen.getByLabelText("작업 이름") as HTMLInputElement).value).toBe(
+    "새 예약 작업 1",
+  );
 });

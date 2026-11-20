@@ -66,7 +66,6 @@ export interface Settings {
   retention_days: number;
 }
 export interface Snapshot {
-  schedule_sequence?: number;
   schedules: Schedule[];
   executions: ExecutionRecord[];
   settings: Settings;

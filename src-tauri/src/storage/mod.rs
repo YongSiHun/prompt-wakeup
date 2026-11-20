@@ -84,9 +84,6 @@ impl StorageRepository {
         )
     }
     pub fn save_changes(&self, previous: &Snapshot, next: &Snapshot) -> Result<()> {
-        if previous.schedule_sequence != next.schedule_sequence {
-            self.save("schedule_sequence.json", &next.schedule_sequence)?;
-        }
         // Commit history before schedules so recovery can detect interrupted launches.
         if previous.executions != next.executions {
             self.save("executions.json", &next.executions)?;
@@ -128,7 +125,6 @@ impl StorageRepository {
     pub fn snapshot(&self) -> Result<Snapshot> {
         let mut warnings = Vec::new();
         Ok(Snapshot {
-            schedule_sequence: self.load("schedule_sequence.json", &mut warnings)?,
             schedules: self.load("schedules.json", &mut warnings)?,
             executions: self.load("executions.json", &mut warnings)?,
             settings: self.load("settings.json", &mut warnings)?,

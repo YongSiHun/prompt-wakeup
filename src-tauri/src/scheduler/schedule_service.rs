@@ -26,24 +26,6 @@ impl ScheduleService {
         match id {
             Some(id) => Self::update(state, &id, input),
             None => {
-                let highest = state
-                    .schedules
-                    .iter()
-                    .filter_map(|schedule| {
-                        schedule
-                            .input
-                            .name
-                            .trim()
-                            .strip_prefix("새 예약 작업 ")
-                            .and_then(|number| number.parse::<u64>().ok())
-                    })
-                    .max()
-                    .unwrap_or(0);
-                state.schedule_sequence = state
-                    .schedule_sequence
-                    .max(highest)
-                    .max(state.schedules.len() as u64)
-                    + 1;
                 state.schedules.push(Schedule {
                     id: uuid::Uuid::new_v4().to_string(),
                     input,
@@ -110,7 +92,6 @@ mod tests {
 
     fn empty_snapshot() -> Snapshot {
         Snapshot {
-            schedule_sequence: 0,
             schedules: Vec::new(),
             executions: Vec::new(),
             settings: Settings::default(),
@@ -128,7 +109,6 @@ mod tests {
         ScheduleService::upsert(&mut state, None, input.clone()).unwrap();
         input.name = " 새 예약 작업 1 ".into();
         assert!(ScheduleService::upsert(&mut state, None, input.clone()).is_err());
-        assert_eq!(state.schedule_sequence, 1);
         let id = state.schedules[0].id.clone();
         ScheduleService::upsert(&mut state, Some(id.clone()), input.clone()).unwrap();
         ScheduleService::action(&mut state, &id, "cancel").unwrap();
@@ -143,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn monotonic_sequence_after_deletion_and_restore() {
+    fn deleted_names_can_be_reused_after_restore() {
         let directory = tempfile::tempdir().unwrap();
         let mut state = empty_snapshot();
         let mut input = crate::test_support::input(directory.path());
@@ -159,8 +139,9 @@ mod tests {
         ScheduleService::action(&mut state, &second, "delete").unwrap();
         let serialized = serde_json::to_string(&state).unwrap();
         let mut restored: Snapshot = serde_json::from_str(&serialized).unwrap();
-        assert_eq!(restored.schedule_sequence, 2);
+        assert!(restored.schedules.is_empty());
+        input.name = "새 예약 작업 1".into();
         ScheduleService::upsert(&mut restored, None, input).unwrap();
-        assert_eq!(restored.schedule_sequence, 3);
+        assert_eq!(restored.schedules[0].input.name, "새 예약 작업 1");
     }
 }
