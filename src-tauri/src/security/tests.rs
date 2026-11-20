@@ -28,3 +28,16 @@ fn invalid_path_and_empty_prompt_rejected() {
     input.cli_path = "relative/codex".into();
     assert!(SecurityValidator::input(&input, true).is_err());
 }
+
+#[cfg(unix)]
+#[test]
+// Test: reject a CLI file without executable permissions.
+fn cli_requires_unix_execute_permission() {
+    use std::os::unix::fs::PermissionsExt;
+    let directory = tempfile::tempdir().unwrap();
+    let input = input(directory.path());
+    std::fs::set_permissions(&input.cli_path, std::fs::Permissions::from_mode(0o600)).unwrap();
+    assert!(SecurityValidator::executable(&input.cli_path).is_err());
+    std::fs::set_permissions(&input.cli_path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(SecurityValidator::executable(&input.cli_path).is_ok());
+}

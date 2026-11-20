@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+mod environment;
 mod version;
 use crate::{
     models::*,
@@ -12,12 +14,18 @@ pub use version::version;
 
 // CLI: 실행 파일 경로 탐색.
 pub fn find(name: &str) -> Option<String> {
-    which::which(name)
+    find_in_path(name)
         .ok()
         .or_else(|| fallback_path(name))
         .map(|path| path.to_string_lossy().into_owned())
 }
-// CLI: 기본 경로 탐색.
+// CLI: Use the same search path for detection and execution.
+fn find_in_path(name: &str) -> std::result::Result<PathBuf, which::Error> {
+    #[cfg(target_os = "macos")]
+    return which::which_in(name, Some(environment::path()), "/");
+    #[cfg(not(target_os = "macos"))]
+    which::which(name)
+}
 fn fallback_path(name: &str) -> Option<PathBuf> {
     #[cfg(windows)]
     let suffixes = [".exe", ".cmd", ".bat"];
@@ -26,7 +34,7 @@ fn fallback_path(name: &str) -> Option<PathBuf> {
     search_directories()
         .into_iter()
         .flat_map(|base| suffixes.map(|suffix| base.join(format!("{name}{suffix}"))))
-        .find(|path| path.is_file())
+        .find(|path| SecurityValidator::executable(&path.to_string_lossy()).is_ok())
 }
 // CLI: 사용자 설치 경로.
 fn search_directories() -> Vec<PathBuf> {
@@ -85,6 +93,8 @@ pub fn command(path: &str, arguments: &[String]) -> Result<Command> {
     }
     let mut command = Command::new(path);
     command.args(arguments);
+    #[cfg(target_os = "macos")]
+    environment::configure(&mut command, Path::new(path))?;
     Ok(command)
 }
 #[cfg(windows)]

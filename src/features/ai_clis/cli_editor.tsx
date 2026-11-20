@@ -77,7 +77,7 @@ export function CliEditor({
               value={path}
               disabled={busy}
               onChange={(event) => setPath(event.target.value)}
-              placeholder="C:\tools\codex.exe"
+              placeholder="CLI 실행 파일의 절대 경로"
             />
             <button type="button" disabled={busy} onClick={() => void browse()}>
               파일 선택
